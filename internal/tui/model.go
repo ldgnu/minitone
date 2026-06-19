@@ -1,45 +1,47 @@
-// minitone - TUI for Apple Music via Cider
-// by ldgnu <ldgnu@users.noreply.github.com>
-
-
 package tui
 
 import (
 	"os"
 	"strings"
 
-	"github.com/ldgnu/minitone/internal/cider"
-	"github.com/ldgnu/minitone/internal/music"
+	"github.com/ldgnu/minitone/internal/subsonic"
 )
 
 type Model struct {
-	client *cider.Client
+	client *subsonic.Client
+	player *subsonic.Player
 
 	state    viewState
 	styles   Styles
 	themeIdx int
 
-	nowPlaying music.NowPlaying
-	isPlaying  bool
-	volume     int
+	currentSong *subsonic.Song
+	isPlaying   bool
+	volume      int
 
 	searchQuery    string
-	searchResults  map[string][]music.SearchResult
+	searchResults  []subsonic.Song
 	searchCursor   int
-	searchCategory string
 
-	detail music.SearchDetail
+	albumSongs    []subsonic.Song
+	albumCursor   int
+	albumTitle    string
+	albumSubtitle string
 
-	queue         []music.Track
-	queueCursor   int
-
-	playlists      []music.Playlist
+	playlists      []subsonic.Playlist
 	playlistCursor int
 
-	playlistTracks []music.Track
-	ptCursor       int
+	playlistSongs []subsonic.Song
+	plsongCursor  int
 
-	lyrics string
+	artists      []subsonic.Artist
+	artistCursor int
+
+	artistAlbums []subsonic.Album
+	aaCursor     int
+
+	queue      []subsonic.Song
+	queueIdx   int
 
 	err error
 
@@ -48,20 +50,18 @@ type Model struct {
 
 	connected bool
 	loading   bool
-
-	eqBars [8]int
+	eqBars    [8]int
 }
 
-func NewModel(client *cider.Client) Model {
+func NewModel(client *subsonic.Client, player *subsonic.Player) Model {
 	themeName := strings.TrimSpace(os.Getenv("AMUSIC_THEME"))
 	t, idx := themeByName(themeName)
 
 	return Model{
-		client:         client,
-		state:          viewConnecting,
-		styles:         NewStyles(t),
-		themeIdx:       idx,
-		searchCategory: "songs",
-		volume:         70,
+		client: client,
+		player: player,
+		styles: NewStyles(t),
+		themeIdx: idx,
+		volume: 70,
 	}
 }

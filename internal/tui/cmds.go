@@ -1,88 +1,60 @@
-// minitone - TUI for Apple Music via Cider
-// by ldgnu <ldgnu@users.noreply.github.com>
-
-
 package tui
 
 import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ldgnu/minitone/internal/cider"
+	"github.com/ldgnu/minitone/internal/subsonic"
 )
 
-func checkConnection(client *cider.Client) tea.Cmd {
+func checkConnection(c *subsonic.Client) tea.Cmd {
 	return func() tea.Msg {
-		_, err := client.NowPlaying()
-		if err != nil {
+		if err := c.Ping(); err != nil {
 			return errMsg{err}
 		}
 		return connectionOKMsg{}
 	}
 }
 
-func fetchNowPlaying(client *cider.Client) tea.Cmd {
+func fetchArtists(c *subsonic.Client) tea.Cmd {
 	return func() tea.Msg {
-		np, err := client.NowPlaying()
-		return nowPlayingMsg{np: np, err: err}
+		artists, err := c.GetArtists()
+		return artistsMsg{artists: artists, err: err}
 	}
 }
 
-func fetchIsPlaying(client *cider.Client) tea.Cmd {
+func fetchAlbums(c *subsonic.Client, artistID string) tea.Cmd {
 	return func() tea.Msg {
-		playing, err := client.IsPlaying()
-		if err != nil {
-			return isPlayingMsg{false}
-		}
-		return isPlayingMsg{playing}
+		albums, err := c.GetArtist(artistID)
+		return albumsMsg{albums: albums, err: err}
 	}
 }
 
-func fetchSearch(client *cider.Client, query string) tea.Cmd {
+func fetchAlbumSongs(c *subsonic.Client, albumID, title, artist string) tea.Cmd {
 	return func() tea.Msg {
-		results, err := client.SearchAll(query, 10)
-		if err != nil {
-			return errMsg{err}
-		}
-		return searchResultsMsg{results: results}
+		songs, err := c.GetAlbum(albumID)
+		return albumSongsMsg{songs: songs, title: title, artist: artist, err: err}
 	}
 }
 
-func fetchDetail(client *cider.Client, kind, id string) tea.Cmd {
+func fetchSearch(c *subsonic.Client, query string) tea.Cmd {
 	return func() tea.Msg {
-		detail, err := client.SearchDetail(kind, id)
-		return searchDetailMsg{detail: detail, err: err}
+		songs, err := c.Search(query, 20)
+		return searchMsg{songs: songs, err: err}
 	}
 }
 
-func fetchPlaylists(client *cider.Client) tea.Cmd {
+func fetchPlaylists(c *subsonic.Client) tea.Cmd {
 	return func() tea.Msg {
-		playlists, err := client.ListPlaylists()
+		playlists, err := c.GetPlaylists()
 		return playlistsMsg{playlists: playlists, err: err}
 	}
 }
 
-func fetchPlaylistTracks(client *cider.Client, id string) tea.Cmd {
+func fetchPlaylistSongs(c *subsonic.Client, id string) tea.Cmd {
 	return func() tea.Msg {
-		tracks, err := client.PlaylistTracks(id)
-		return playlistTracksMsg{tracks: tracks, err: err}
-	}
-}
-
-func fetchQueue(client *cider.Client) tea.Cmd {
-	return func() tea.Msg {
-		tracks, err := client.Queue()
-		return queueMsg{tracks: tracks, err: err}
-	}
-}
-
-func fetchLyrics(client *cider.Client, trackID string) tea.Cmd {
-	return func() tea.Msg {
-		text, err := client.Lyrics(trackID)
-		if err != nil || text == "" {
-			return lyricsMsg{err: err}
-		}
-		return lyricsMsg{text: text}
+		songs, err := c.GetPlaylist(id)
+		return playlistSongsMsg{songs: songs, err: err}
 	}
 }
 

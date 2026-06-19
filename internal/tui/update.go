@@ -1,7 +1,3 @@
-// minitone - TUI for Apple Music via Cider
-// by ldgnu <ldgnu@users.noreply.github.com>
-
-
 package tui
 
 import (
@@ -28,43 +24,51 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case connectionOKMsg:
 		m.connected = true
-		m.state = viewNowPlaying
-		m.loading = false
-		return m, tea.Batch(fetchNowPlaying(m.client), fetchIsPlaying(m.client))
+		m.state = viewArtists
+		m.loading = true
+		return m, fetchArtists(m.client)
 
 	case errMsg:
 		m.err = msg.err
 		m.loading = false
-		if !m.connected {
-			m.state = viewConnecting
-		}
 		return m, nil
 
-	case nowPlayingMsg:
+	case artistsMsg:
 		if msg.err == nil {
-			m.nowPlaying = msg.np
-		}
-		m.loading = false
-		return m, nil
-
-	case isPlayingMsg:
-		m.isPlaying = msg.playing
-		return m, nil
-
-	case searchResultsMsg:
-		if msg.err == nil {
-			m.searchResults = msg.results
-			m.searchCursor = 0
+			m.artists = msg.artists
+			m.artistCursor = 0
 		} else {
 			m.err = msg.err
 		}
 		m.loading = false
 		return m, nil
 
-	case searchDetailMsg:
+	case albumsMsg:
 		if msg.err == nil {
-			m.detail = msg.detail
-			m.state = viewSearchDetail
+			m.artistAlbums = msg.albums
+			m.aaCursor = 0
+		} else {
+			m.err = msg.err
+		}
+		m.loading = false
+		return m, nil
+
+	case albumSongsMsg:
+		if msg.err == nil {
+			m.albumSongs = msg.songs
+			m.albumCursor = 0
+			m.albumTitle = msg.title
+			m.albumSubtitle = msg.artist
+		} else {
+			m.err = msg.err
+		}
+		m.loading = false
+		return m, nil
+
+	case searchMsg:
+		if msg.err == nil {
+			m.searchResults = msg.songs
+			m.searchCursor = 0
 		} else {
 			m.err = msg.err
 		}
@@ -81,37 +85,22 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		return m, nil
 
-	case playlistTracksMsg:
+	case playlistSongsMsg:
 		if msg.err == nil {
-			m.playlistTracks = msg.tracks
-			m.ptCursor = 0
+			m.playlistSongs = msg.songs
+			m.plsongCursor = 0
 		} else {
 			m.err = msg.err
 		}
 		m.loading = false
 		return m, nil
 
-	case queueMsg:
-		if msg.err == nil {
-			m.queue = msg.tracks
-			m.queueCursor = 0
-		} else {
-			m.err = msg.err
-		}
-		m.loading = false
-		return m, nil
-
-	case lyricsMsg:
-		if msg.err == nil {
-			m.lyrics = msg.text
-		} else {
-			m.lyrics = ""
-		}
+	case nowPlayingMsg:
 		m.loading = false
 		return m, nil
 
 	case eqTickMsg:
-		if m.isPlaying {
+		if m.player.IsPlaying() {
 			for i := range m.eqBars {
 				m.eqBars[i] = rand.IntN(7) + 1
 			}
@@ -124,13 +113,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 
 	case tickMsg:
-		if m.connected && m.state == viewNowPlaying {
-			return m, tea.Batch(
-				fetchNowPlaying(m.client),
-				fetchIsPlaying(m.client),
-				tick(),
-				eqTick(),
-			)
+		if m.connected {
+			m.currentSong = m.player.NowPlaying()
+			m.isPlaying = m.player.IsPlaying()
+			m.volume = m.player.GetVolume()
+			if m.state == viewNowPlaying {
+				return m, tea.Batch(tick(), eqTick())
+			}
 		}
 		return m, tick()
 	}
@@ -142,31 +131,31 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch m.state {
 	case viewConnecting:
 		if msg.String() == "q" || msg.String() == "ctrl+c" {
+			m.player.Close()
 			return m, tea.Quit
-		}
-		if msg.String() == "r" {
-			m.err = nil
-			return m, checkConnection(m.client)
 		}
 		return m, nil
 
 	case viewNowPlaying:
 		return m.handleNowPlayingKeys(msg)
 
+	case viewArtists:
+		return m.handleArtistKeys(msg)
+
+	case viewArtistAlbums:
+		return m.handleAlbumsKeys(msg)
+
+	case viewAlbumSongs:
+		return m.handleAlbumSongsKeys(msg)
+
 	case viewSearch:
 		return m.handleSearchKeys(msg)
 
-	case viewSearchDetail:
-		return m.handleSearchDetailKeys(msg)
+	case viewPlaylists:
+		return m.handlePlaylistKeys(msg)
 
-	case viewQueue:
-		return m.handleQueueKeys(msg)
-
-	case viewLibrary:
-		return m.handleLibraryKeys(msg)
-
-	case viewPlaylistTracks:
-		return m.handlePlaylistTracksKeys(msg)
+	case viewPlaylistSongs:
+		return m.handlePlaylistSongsKeys(msg)
 
 	case viewLyrics:
 		if msg.String() == "q" || msg.String() == "esc" {
@@ -182,30 +171,22 @@ func (m *Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 func (m *Model) handleNowPlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
+		m.player.Close()
 		return m, tea.Quit
 	case " ":
-		m.loading = true
 		return m, func() tea.Msg {
-			err := m.client.TogglePlayPause()
-			if err != nil {
-				return errMsg{err}
-			}
-			return fetchIsPlaying(m.client)()
+			m.player.TogglePause()
+			m.isPlaying = m.player.IsPlaying()
+			return nil
 		}
 	case "n":
-		m.loading = true
 		return m, func() tea.Msg {
-			if err := m.client.Next(); err != nil {
-				return errMsg{err}
-			}
+			m.player.Next()
 			return nil
 		}
 	case "p":
-		m.loading = true
 		return m, func() tea.Msg {
-			if err := m.client.Previous(); err != nil {
-				return errMsg{err}
-			}
+			m.player.Previous()
 			return nil
 		}
 	case "s":
@@ -213,46 +194,119 @@ func (m *Model) handleNowPlayingKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.searchQuery = ""
 		m.searchResults = nil
 		return m, nil
+	case "a":
+		m.state = viewArtists
+		m.loading = true
+		return m, fetchArtists(m.client)
 	case "l":
-		m.state = viewLibrary
+		m.state = viewPlaylists
 		m.loading = true
 		return m, fetchPlaylists(m.client)
-	case "w":
-		m.state = viewQueue
-		m.loading = true
-		return m, fetchQueue(m.client)
 	case "+", "=":
-		if m.volume < 100 {
-			m.volume += 5
-			return m, func() tea.Msg {
-				return m.client.SetVolume(m.volume)
-			}
+		m.volume += 5
+		if m.volume > 100 {
+			m.volume = 100
 		}
+		m.player.SetVolume(m.volume)
+		return m, nil
 	case "-":
-		if m.volume > 0 {
-			m.volume -= 5
-			return m, func() tea.Msg {
-				return m.client.SetVolume(m.volume)
-			}
+		m.volume -= 5
+		if m.volume < 0 {
+			m.volume = 0
 		}
-	case "z":
-		return m, func() tea.Msg {
-			return m.client.ToggleShuffle()
-		}
-	case "x":
-		return m, func() tea.Msg {
-			return m.client.ToggleRepeat()
-		}
-	case "y":
-		if m.nowPlaying.TrackID != "" {
-			m.state = viewLyrics
-			m.loading = true
-			return m, fetchLyrics(m.client, m.nowPlaying.TrackID)
-		}
+		m.player.SetVolume(m.volume)
+		return m, nil
 	case "t":
 		m.themeIdx = (m.themeIdx + 1) % len(themes)
 		m.styles = NewStyles(themes[m.themeIdx])
 		return m, nil
+	}
+	return m, nil
+}
+
+func (m *Model) handleArtistKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "esc":
+		m.state = viewNowPlaying
+		return m, nil
+	case "up", "k":
+		if m.artistCursor > 0 {
+			m.artistCursor--
+		}
+	case "down", "j":
+		if m.artistCursor < len(m.artists)-1 {
+			m.artistCursor++
+		}
+	case "right", "l", "enter":
+		if len(m.artists) > 0 {
+			id := m.artists[m.artistCursor].ID
+			m.state = viewArtistAlbums
+			m.loading = true
+			return m, fetchAlbums(m.client, id)
+		}
+	}
+	return m, nil
+}
+
+func (m *Model) handleAlbumsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "esc":
+		m.state = viewArtists
+		return m, nil
+	case "up", "k":
+		if m.aaCursor > 0 {
+			m.aaCursor--
+		}
+	case "down", "j":
+		if m.aaCursor < len(m.artistAlbums)-1 {
+			m.aaCursor++
+		}
+	case "right", "l", "enter":
+		if len(m.artistAlbums) > 0 {
+			album := m.artistAlbums[m.aaCursor]
+			m.state = viewAlbumSongs
+			m.loading = true
+			return m, fetchAlbumSongs(m.client, album.ID, album.Name, album.Artist)
+		}
+	case " ":
+		if len(m.artistAlbums) > 0 {
+			album := m.artistAlbums[m.aaCursor]
+			m.loading = true
+			return m, func() tea.Msg {
+				songs, err := m.client.GetAlbum(album.ID)
+				if err != nil {
+					return errMsg{err}
+				}
+				m.player.PlayPlaylist(songs, 0)
+				m.state = viewNowPlaying
+				m.loading = false
+				return nil
+			}
+		}
+	}
+	return m, nil
+}
+
+func (m *Model) handleAlbumSongsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "q", "esc":
+		m.state = viewArtistAlbums
+		return m, nil
+	case "up", "k":
+		if m.albumCursor > 0 {
+			m.albumCursor--
+		}
+	case "down", "j":
+		if m.albumCursor < len(m.albumSongs)-1 {
+			m.albumCursor++
+		}
+	case " ":
+		if len(m.albumSongs) > 0 {
+			idx := m.albumCursor
+			m.player.PlayPlaylist(m.albumSongs, idx)
+			m.state = viewNowPlaying
+			return m, nil
+		}
 	}
 	return m, nil
 }
@@ -273,57 +327,21 @@ func (m *Model) handleSearchKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if len(m.searchQuery) > 0 {
 			m.searchQuery = m.searchQuery[:len(m.searchQuery)-1]
 		}
-	case "tab":
-		categories := []string{"songs", "albums", "artists", "playlists"}
-		for i, c := range categories {
-			if c == m.searchCategory && i+1 < len(categories) {
-				m.searchCategory = categories[i+1]
-				m.searchCursor = 0
-				break
-			}
-		}
-	case "shift+tab":
-		categories := []string{"songs", "albums", "artists", "playlists"}
-		for i, c := range categories {
-			if c == m.searchCategory && i-1 >= 0 {
-				m.searchCategory = categories[i-1]
-				m.searchCursor = 0
-				break
-			}
-		}
 	case "up", "k":
 		if m.searchCursor > 0 {
 			m.searchCursor--
 		}
 	case "down", "j":
-		results := m.searchResults[m.searchCategory]
-		if m.searchCursor < len(results)-1 {
+		if m.searchCursor < len(m.searchResults)-1 {
 			m.searchCursor++
 		}
-	case "right", "l":
-		if results, ok := m.searchResults[m.searchCategory]; ok && len(results) > 0 {
-			idx := m.searchCursor
-			if idx >= 0 && idx < len(results) {
-				r := results[idx]
-				if r.Type != "songs" {
-					m.loading = true
-					return m, fetchDetail(m.client, r.Type, r.ID)
-				}
-			}
-		}
 	case " ":
-		if results, ok := m.searchResults[m.searchCategory]; ok && len(results) > 0 {
-			idx := m.searchCursor
-			if idx >= 0 && idx < len(results) {
-				r := results[idx]
-				return m, func() tea.Msg {
-					err := m.client.PlayItem(r.Type, r.ID)
-					if err != nil {
-						return errMsg{err}
-					}
-					return nil
-				}
-			}
+		if len(m.searchResults) > 0 {
+			s := m.searchResults[m.searchCursor]
+			m.player.PlaySong(s)
+			m.player.SetPlaylist(m.searchResults, m.searchCursor)
+			m.state = viewNowPlaying
+			return m, nil
 		}
 	default:
 		if len(msg.String()) == 1 {
@@ -333,82 +351,7 @@ func (m *Model) handleSearchKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m *Model) handleSearchDetailKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "q", "esc":
-		m.state = viewSearch
-		return m, nil
-	case "up", "k":
-		if m.detailCursor() > 0 {
-			m.searchCursor--
-		}
-	case "down", "j":
-		if m.detailCursor() < len(m.detail.Tracks)-1 {
-			m.searchCursor++
-		}
-	case " ":
-		tracks := m.detail.Tracks
-		if len(tracks) > 0 {
-			idx := m.detailCursor()
-			if idx >= 0 && idx < len(tracks) {
-				t := tracks[idx]
-				return m, func() tea.Msg {
-					err := m.client.PlayItem("songs", t.ID)
-					if err != nil {
-						return errMsg{err}
-					}
-					return nil
-				}
-			}
-		}
-	case "a":
-		tracks := m.detail.Tracks
-		if len(tracks) > 0 {
-			idx := m.detailCursor()
-			if idx >= 0 && idx < len(tracks) {
-				t := tracks[idx]
-				return m, func() tea.Msg {
-					err := m.client.PlayLater("songs", t.ID)
-					if err != nil {
-						return errMsg{err}
-					}
-					return nil
-				}
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m *Model) handleQueueKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "q", "esc":
-		m.state = viewNowPlaying
-		return m, nil
-	case "up", "k":
-		if m.queueCursor > 0 {
-			m.queueCursor--
-		}
-	case "down", "j":
-		if m.queueCursor < len(m.queue)-1 {
-			m.queueCursor++
-		}
-	case " ":
-		if len(m.queue) > 0 && m.queueCursor >= 0 {
-			t := m.queue[m.queueCursor]
-			return m, func() tea.Msg {
-				err := m.client.PlayItem("songs", t.ID)
-				if err != nil {
-					return errMsg{err}
-				}
-				return nil
-			}
-		}
-	}
-	return m, nil
-}
-
-func (m *Model) handleLibraryKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m *Model) handlePlaylistKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
 		m.state = viewNowPlaying
@@ -421,75 +364,59 @@ func (m *Model) handleLibraryKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		if m.playlistCursor < len(m.playlists)-1 {
 			m.playlistCursor++
 		}
-	case "right", "l":
+	case "right", "l", "enter":
 		if len(m.playlists) > 0 {
 			id := m.playlists[m.playlistCursor].ID
+			m.state = viewPlaylistSongs
 			m.loading = true
-			return m, fetchPlaylistTracks(m.client, id)
+			return m, fetchPlaylistSongs(m.client, id)
 		}
 	}
 	return m, nil
 }
 
-func (m *Model) handlePlaylistTracksKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m *Model) handlePlaylistSongsKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "esc":
-		m.state = viewLibrary
+		m.state = viewPlaylists
 		return m, nil
 	case "up", "k":
-		if m.ptCursor > 0 {
-			m.ptCursor--
+		if m.plsongCursor > 0 {
+			m.plsongCursor--
 		}
 	case "down", "j":
-		if m.ptCursor < len(m.playlistTracks)-1 {
-			m.ptCursor++
+		if m.plsongCursor < len(m.playlistSongs)-1 {
+			m.plsongCursor++
 		}
 	case " ":
-		if len(m.playlistTracks) > 0 {
-			t := m.playlistTracks[m.ptCursor]
-			return m, func() tea.Msg {
-				err := m.client.PlayItem("songs", t.ID)
-				if err != nil {
-					return errMsg{err}
-				}
-				return nil
-			}
-		}
-	case "a":
-		if len(m.playlistTracks) > 0 {
-			t := m.playlistTracks[m.ptCursor]
-			return m, func() tea.Msg {
-				err := m.client.PlayLater("songs", t.ID)
-				if err != nil {
-					return errMsg{err}
-				}
-				return nil
-			}
+		if len(m.playlistSongs) > 0 {
+			idx := m.plsongCursor
+			m.player.PlayPlaylist(m.playlistSongs, idx)
+			m.state = viewNowPlaying
+			return m, nil
 		}
 	}
 	return m, nil
 }
 
-func (m *Model) detailCursor() int {
-	return m.searchCursor
-}
-
-func fmtDuration(ms int64) string {
-	sec := ms / 1000
-	min := sec / 60
-	sec = sec % 60
-	return fmt.Sprintf("%d:%02d", min, sec)
-}
-
-func progressBar(current, total float64, width int) string {
-	if total <= 0 {
-		return ""
+func fmtDuration(sec int) string {
+	if sec <= 0 {
+		return "--:--"
 	}
-	ratio := current / total
+	return fmt.Sprintf("%d:%02d", sec/60, sec%60)
+}
+
+func progressBarFilled(current, total int, width int) string {
+	if total <= 0 {
+		return strings.Repeat("░", width)
+	}
+	ratio := float64(current) / float64(total)
+	if ratio > 1 {
+		ratio = 1
+	}
 	filled := int(ratio * float64(width))
 	if filled > width {
 		filled = width
 	}
-	bar := strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
-	return bar
+	return strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
 }

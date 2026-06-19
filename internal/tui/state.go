@@ -1,7 +1,3 @@
-// minitone - TUI for Apple Music via Cider
-// by ldgnu <ldgnu@users.noreply.github.com>
-
-
 package tui
 
 type viewState int
@@ -9,10 +5,11 @@ type viewState int
 const (
 	viewConnecting viewState = iota
 	viewNowPlaying
+	viewArtists
+	viewArtistAlbums
+	viewAlbumSongs
 	viewSearch
-	viewSearchDetail
-	viewQueue
-	viewLibrary
-	viewPlaylistTracks
+	viewPlaylists
+	viewPlaylistSongs
 	viewLyrics
 )
