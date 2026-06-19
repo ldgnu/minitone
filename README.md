@@ -2,7 +2,7 @@
 
 TUI pa' controlar Apple Music desde Cider, estilo spotify-tui.
 
-Creado por [ldgnu](https://github.com/ldgnu).
+by [ldgnu](https://github.com/ldgnu)
 
 ## Requisitos
 

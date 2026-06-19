@@ -1,5 +1,5 @@
 // minitone - TUI pa' controlar Apple Music desde Cider
-// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// by ldgnu <ldgnu@users.noreply.github.com>
 // Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package tui
@@ -34,18 +34,19 @@ func (m Model) View() string {
 
 func (m Model) connectingView() string {
 	var b strings.Builder
-
-	b.WriteString(m.styles.ProgressFull.Render(minitoneLogo()))
+	b.WriteString(dragonLogo())
+	b.WriteString("\n")
+	b.WriteString(m.styles.Dimmed.Render("          ─── by ldgnu ───"))
 	b.WriteString("\n\n")
 
 	if m.err != nil {
 		b.WriteString(m.styles.Error.Render(fmt.Sprintf("✗ %v", m.err)))
 		b.WriteString("\n\n")
-		b.WriteString(m.styles.Help.Render("Asegúrate de que Cider esté corriendo con RPC habilitado"))
+		b.WriteString(m.styles.Help.Render("Asegurate de tener Cider abierto con el RPC activado"))
 		b.WriteString("\n")
 		b.WriteString(m.styles.Help.Render("Settings → Connectivity → Websocket API → Enable"))
 		b.WriteString("\n\n")
-		b.WriteString(m.styles.Dimmed.Render("Presiona 'r' para reintentar, 'q' para salir"))
+		b.WriteString(m.styles.Dimmed.Render("Presiona 'r' pa' reconectar, 'q' pa' salir"))
 	} else {
 		b.WriteString(m.styles.Dimmed.Render("Conectando con Cider..."))
 	}
@@ -56,10 +57,10 @@ func (m Model) connectingView() string {
 func (m Model) nowPlayingView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.ProgressFull.Render(minitoneLogo()))
+	b.WriteString(minitoneBlockLogo())
 	theme := themes[m.themeIdx].Name
 	b.WriteString(m.styles.Help.Render(fmt.Sprintf("  [%s]", theme)))
-	b.WriteString("\n\n")
+	b.WriteString("\n")
 
 	np := m.nowPlaying
 
@@ -71,6 +72,13 @@ func (m Model) nowPlayingView() string {
 		b.WriteString(m.styles.Info.Render(np.Artist))
 		b.WriteString("\n")
 		b.WriteString(m.styles.Dimmed.Render(np.Album))
+
+		eq := m.equalizer()
+		if eq != "" {
+			b.WriteString("\n\n")
+			b.WriteString(m.styles.ProgressFull.Render(eq))
+		}
+
 		b.WriteString("\n\n")
 
 		if np.DurationMS > 0 {
@@ -116,6 +124,23 @@ func (m Model) nowPlayingView() string {
 	return m.styles.App.Render(b.String())
 }
 
+func (m Model) equalizer() string {
+	if !m.isPlaying {
+		return ""
+	}
+	blocks := []string{"▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"}
+	var out strings.Builder
+	for _, h := range m.eqBars {
+		if h >= 0 && h < len(blocks) {
+			out.WriteString(blocks[h])
+		} else {
+			out.WriteString("▁")
+		}
+		out.WriteString(" ")
+	}
+	return out.String()
+}
+
 func (m Model) searchView() string {
 	var b strings.Builder
 
@@ -125,7 +150,7 @@ func (m Model) searchView() string {
 	b.WriteString(m.styles.Info.Render("Buscar: "))
 	b.WriteString(m.searchQuery)
 	if !m.loading && m.searchQuery != "" && m.searchResults == nil {
-		b.WriteString(m.styles.Dimmed.Render(" (Enter para buscar)"))
+		b.WriteString(m.styles.Dimmed.Render(" (Enter pa' buscar)"))
 	}
 	b.WriteString("\n\n")
 
@@ -171,7 +196,7 @@ func (m Model) searchView() string {
 	}
 
 	b.WriteString(m.styles.Help.Render(
-		"Escribe para buscar  [Enter] buscar  [Tab] categoría  " +
+		"Escribí pa' buscar  [Enter] buscar  [Tab] categoría  " +
 			"[↑↓] navegar  [Space] reproducir  [→] detalle  [q] volver",
 	))
 
@@ -207,7 +232,7 @@ func (m Model) detailView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] añadir a cola  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] agregar a cola  [q] volver"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -303,7 +328,7 @@ func (m Model) playlistTracksView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] añadir a cola  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] agregar a cola  [q] volver"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -339,8 +364,40 @@ func (m Model) lyricsView() string {
 	return m.styles.App.Render(b.String())
 }
 
-func minitoneLogo() string {
-	return `   ♪═♫═♪═♫═♪
-   ░ minitone ░
-   ♫═♪═♫═♪═♫`
+func dragonLogo() string {
+	return `                    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                ▄▄▀▀▀▀░░░░░░░░░░░░▀▀▄▄
+              ▄▀░░░░░░░░░░░░░░░░░░░░░░▀▄
+            ▄▀░░░░░░░░░░░░░░░░░░░░░░░░░░▀▄
+           █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
+          █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
+         █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
+        █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
+       █░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░█
+       █░░░░░░░░░░░░░░░▄▄▄▄▄▄▄░░░░░░░░░░░░░░░█
+      █░░░░░░░░░░░░▄▄▀▀░░░░░░░▀▀▄▄░░░░░░░░░░░░█
+     █░░░░░░░░░░▄▀▀░░░░░░░░░░░░░░▀▄░░░░░░░░░░░█
+     █░░░░░░░░░█░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░█
+    █░░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░█
+    █░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░█
+    █░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░█
+    █░░░░░░░░█▄░░░░░░░░░░░░░░░░░░░░░▄█░░░░░░░░░█
+    █░░░░░░░░░▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀░░░░░░░░░░█
+    █░░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░█
+    █░░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░█
+     █░░░░░░░░█░░░░░░░░░░░░░░░░░░░░░█░░░░░░░░░█
+     █░░░░░░░░░█░░░░░░░░░░░░░░░░░░░█░░░░░░░░░░█
+      █░░░░░░░░░▀▄░░░░░░░░░░░░░░░▄▀░░░░░░░░░░█
+       █░░░░░░░░░░▀▀▄▄░░░░░░░▄▄▀▀░░░░░░░░░░░█
+        ▀▄░░░░░░░░░░░░░▀▀▀▀▀░░░░░░░░░░░░░░░▄▀
+          ▀▄░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░▄▀
+            ▀▀▄▄░░░░░░░░░░░░░░░░░░░░░░▄▄▀▀
+                ▀▀▀▀▄▄▄▄▄▄▄▄▄▄▄▄▀▀▀▀`
+}
+
+func minitoneBlockLogo() string {
+	return `  █▄▄▄ █▄▄▄ ▄▄▄ █   █▄▄▄ █▄▄▄ █▄▄▄
+  █ █ █ █▄▄  █  █   █ █ █ █▄▄  █▄▄
+  █   █ █▄▄▄ █▄▄ █▄▄▄ █▄▄▄ █▄▄▄ █▄▄▄
+  ─────────── by ldgnu ────────────`
 }

@@ -1,5 +1,5 @@
 // minitone - TUI pa' controlar Apple Music desde Cider
-// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// by ldgnu <ldgnu@users.noreply.github.com>
 // Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package tui
@@ -89,5 +89,11 @@ func fetchLyrics(client *cider.Client, trackID string) tea.Cmd {
 func tick() tea.Cmd {
 	return tea.Tick(1*time.Second, func(t time.Time) tea.Msg {
 		return tickMsg{}
+	})
+}
+
+func eqTick() tea.Cmd {
+	return tea.Tick(200*time.Millisecond, func(t time.Time) tea.Msg {
+		return eqTickMsg{}
 	})
 }

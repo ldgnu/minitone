@@ -1,5 +1,5 @@
 // minitone - TUI pa' controlar Apple Music desde Cider
-// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// by ldgnu <ldgnu@users.noreply.github.com>
 // Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package tui
@@ -48,6 +48,8 @@ type Model struct {
 
 	connected bool
 	loading   bool
+
+	eqBars [8]int
 }
 
 func NewModel(client *cider.Client) Model {

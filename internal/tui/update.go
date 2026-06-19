@@ -1,11 +1,12 @@
 // minitone - TUI pa' controlar Apple Music desde Cider
-// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// by ldgnu <ldgnu@users.noreply.github.com>
 // Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package tui
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -109,12 +110,26 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.loading = false
 		return m, nil
 
+	case eqTickMsg:
+		if m.isPlaying {
+			for i := range m.eqBars {
+				m.eqBars[i] = rand.IntN(7) + 1
+			}
+		} else {
+			m.eqBars = [8]int{}
+		}
+		if m.state == viewNowPlaying {
+			return m, eqTick()
+		}
+		return m, nil
+
 	case tickMsg:
 		if m.connected && m.state == viewNowPlaying {
 			return m, tea.Batch(
 				fetchNowPlaying(m.client),
 				fetchIsPlaying(m.client),
 				tick(),
+				eqTick(),
 			)
 		}
 		return m, tick()

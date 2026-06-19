@@ -1,5 +1,5 @@
 // minitone - TUI pa' controlar Apple Music desde Cider
-// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// by ldgnu <ldgnu@users.noreply.github.com>
 // Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package cider
