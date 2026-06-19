@@ -1,77 +1,76 @@
-# amusic-cli 🎵
+# minitone ♪
 
-TUI para Apple Music en Linux. Controla Cider desde la terminal, estilo spotify-tui.
+TUI pa' controlar Apple Music desde Cider, estilo spotify-tui.
 
-![screenshot](https://i.imgur.com/placeholder.png)
+Creado por [ldgnu](https://github.com/ldgnu).
 
 ## Requisitos
 
-- **[Cider](https://cider.sh)** corriendo con RPC habilitado
+- **[Cider](https://cider.sh)** bajado y corriendo con RPC activado
   - Settings → Connectivity → Websocket API → **Enable**
-  - (Opcional) Configurar API token en Settings → Connectivity → Manage External Application Access
+  - (Opcional) Token de API en Manage External Application Access
 
 ## Instalación
 
-### Arch Linux (AUR)
+### Arch Linux (AUR — pronto)
 
 ```bash
-# Desde AUR (cuando esté publicado)
-yay -S amusic-cli-bin
+yay -S minitone-bin
 
 # O manual
-git clone https://github.com/ldgnu/amusic-cli
-cd amusic-cli
+git clone https://github.com/ldgnu/minitone
+cd minitone
 makepkg -si
 ```
 
 ### go install
 
 ```bash
-go install github.com/ldgnu/amusic-cli/cmd/amusic@latest
+go install github.com/ldgnu/minitone/cmd/minitone@latest
 ```
 
 ### Manual
 
 ```bash
-git clone https://github.com/ldgnu/amusic-cli
-cd amusic-cli
-go build -ldflags="-s -w" -o amusic ./cmd/amusic/
-sudo install -m755 amusic /usr/local/bin/
+git clone https://github.com/ldgnu/minitone
+cd minitone
+go build -ldflags="-s -w" -o minitone ./cmd/minitone/
+sudo cp minitone /usr/local/bin/
 ```
 
 ## Uso
 
 ```bash
-# Iniciar (Cider debe estar corriendo)
-amusic
+# Arrancá (Cider tiene que estar abierto)
+minitone
 
-# Con token personalizado
-CIDER_API_TOKEN=tu-token amusic
+# Con token
+CIDER_API_TOKEN=token minitone
 
-# Con storefront específico
-CIDER_STOREFRONT=es amusic
+# Con storefront argento
+CIDER_STOREFRONT=ar minitone
 
-# Tema específico
-AMUSIC_THEME=catppuccin amusic
+# Temita lindo
+AMUSIC_THEME=catppuccin minitone
 ```
 
 ### Controles
 
 | Tecla | Acción |
 |-------|--------|
-| `Space` | Play / Pause |
-| `n` | Siguiente |
-| `p` | Anterior |
-| `+` / `-` | Subir / Bajar volumen |
+| `Space` | Play / Pausa |
+| `n` | Siguiente tema |
+| `p` | Tema anterior |
+| `+` / `-` | Volumen pa' arriba / abajo |
 | `s` | Buscar canciones |
 | `l` | Biblioteca (playlists) |
 | `w` | Ver cola |
 | `y` | Ver letra |
-| `t` | Cambiar tema |
-| `z` | Alternar shuffle |
-| `x` | Alternar repeat |
+| `t` | Cambiar tema visual |
+| `z` | Mezclar (shuffle) |
+| `x` | Repetir |
 | `q` | Volver / Salir |
-| `↑↓` / `jk` | Navegar listas |
+| `↑↓` / `jk` | Moverse en las listas |
 | `Enter` | Buscar |
 | `Tab` | Cambiar categoría |
 
@@ -91,8 +90,8 @@ AMUSIC_THEME=catppuccin amusic
 
 ## TODO
 
-- [ ] Atajo para like/dislike
-- [ ] Artwork en terminal (sixel/kitty)
-- [ ] Modo Chromium headless (sin Cider)
+- [ ] Like / dislike
+- [ ] Carátula en la terminal (sixel / kitty)
+- [ ] Modo Chromium headless (sin depender de Cider)
 - [ ] Más temas
-- [ ] Config file (`~/.config/amusic/config.json`)
+- [ ] Config file (`~/.config/minitone/config.json`)

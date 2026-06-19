@@ -1,7 +1,11 @@
+// minitone - TUI pa' controlar Apple Music desde Cider
+// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// Usalo, rompelo, mejoralo — total, pa' eso estamos
+
 package tui
 
 import (
-	"github.com/ldgnu/amusic-cli/internal/music"
+	"github.com/ldgnu/minitone/internal/music"
 )
 
 type errMsg struct{ err error }

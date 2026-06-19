@@ -1,3 +1,7 @@
+// minitone - TUI pa' controlar Apple Music desde Cider
+// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// Usalo, rompelo, mejoralo — total, pa' eso estamos
+
 package tui
 
 import (
@@ -30,7 +34,7 @@ func (m Model) View() string {
 
 func (m Model) connectingView() string {
 	var b strings.Builder
-	b.WriteString(m.styles.Title.Render(" ♪ amusic "))
+	b.WriteString(m.styles.Title.Render(" ♪ minitone "))
 	b.WriteString("\n\n")
 
 	if m.err != nil {
@@ -51,7 +55,7 @@ func (m Model) connectingView() string {
 func (m Model) nowPlayingView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" ♪ amusic "))
+	b.WriteString(m.styles.Title.Render(" ♪ minitone "))
 	theme := themes[m.themeIdx].Name
 	b.WriteString(m.styles.Help.Render(fmt.Sprintf(" [%s]", theme)))
 	b.WriteString("\n\n")

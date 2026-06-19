@@ -1,4 +1,4 @@
-module github.com/ldgnu/amusic-cli
+module github.com/ldgnu/minitone
 
 go 1.26.4
 

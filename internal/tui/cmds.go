@@ -1,10 +1,14 @@
+// minitone - TUI pa' controlar Apple Music desde Cider
+// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// Usalo, rompelo, mejoralo — total, pa' eso estamos
+
 package tui
 
 import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ldgnu/amusic-cli/internal/cider"
+	"github.com/ldgnu/minitone/internal/cider"
 )
 
 func checkConnection(client *cider.Client) tea.Cmd {

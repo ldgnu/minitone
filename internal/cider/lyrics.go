@@ -1,3 +1,7 @@
+// minitone - TUI pa' controlar Apple Music desde Cider
+// Creado por ldgnu <ldgnu@users.noreply.github.com>
+// Usalo, rompelo, mejoralo — total, pa' eso estamos
+
 package cider
 
 import (
@@ -27,7 +31,7 @@ func (c *Client) LyricsLRCLIB(track, artist string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	req.Header.Set("User-Agent", "amusic-cli/0.1")
+	req.Header.Set("User-Agent", "minitone/0.1")
 	req.Header.Set("Accept", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
