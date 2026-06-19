@@ -1,6 +1,6 @@
 # minitone ♪
 
-TUI pa' controlar Apple Music desde Cider, estilo spotify-tui.
+TUI for Apple Music via Cider, like spotify-tui.
 
 by [ldgnu](https://github.com/ldgnu)
 

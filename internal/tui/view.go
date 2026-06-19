@@ -1,6 +1,5 @@
-// minitone - TUI pa' controlar Apple Music desde Cider
+// minitone - TUI for Apple Music via Cider
 // by ldgnu <ldgnu@users.noreply.github.com>
-// Usalo, rompelo, mejoralo — total, pa' eso estamos
 
 package tui
 
@@ -42,13 +41,13 @@ func (m Model) connectingView() string {
 	if m.err != nil {
 		b.WriteString(m.styles.Error.Render(fmt.Sprintf("✗ %v", m.err)))
 		b.WriteString("\n\n")
-		b.WriteString(m.styles.Help.Render("Asegurate de tener Cider abierto con el RPC activado"))
+		b.WriteString(m.styles.Help.Render("Make sure Cider is running with RPC enabled"))
 		b.WriteString("\n")
 		b.WriteString(m.styles.Help.Render("Settings → Connectivity → Websocket API → Enable"))
 		b.WriteString("\n\n")
-		b.WriteString(m.styles.Dimmed.Render("Presiona 'r' pa' reconectar, 'q' pa' salir"))
+		b.WriteString(m.styles.Dimmed.Render("Press 'r' to retry, 'q' to quit"))
 	} else {
-		b.WriteString(m.styles.Dimmed.Render("Conectando con Cider..."))
+		b.WriteString(m.styles.Dimmed.Render("Connecting to Cider..."))
 	}
 
 	return m.styles.App.Render(b.String())
@@ -65,7 +64,7 @@ func (m Model) nowPlayingView() string {
 	np := m.nowPlaying
 
 	if np.Track == "" {
-		b.WriteString(m.styles.Info.Render("No hay canción reproduciéndose"))
+		b.WriteString(m.styles.Info.Render("No track playing"))
 	} else {
 		b.WriteString(m.styles.Highlight.Render(np.Track))
 		b.WriteString("\n")
@@ -144,21 +143,21 @@ func (m Model) equalizer() string {
 func (m Model) searchView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" 🔍 Buscar "))
+	b.WriteString(m.styles.Title.Render(" 🔍 Search "))
 	b.WriteString("\n\n")
 
-	b.WriteString(m.styles.Info.Render("Buscar: "))
+	b.WriteString(m.styles.Info.Render("Search: "))
 	b.WriteString(m.searchQuery)
 	if !m.loading && m.searchQuery != "" && m.searchResults == nil {
-		b.WriteString(m.styles.Dimmed.Render(" (Enter pa' buscar)"))
+		b.WriteString(m.styles.Dimmed.Render(" (press Enter to search)"))
 	}
 	b.WriteString("\n\n")
 
 	if m.searchResults != nil {
 		categories := []string{"songs", "albums", "artists", "playlists"}
 		labels := map[string]string{
-			"songs": "Canciones", "albums": "Álbumes",
-			"artists": "Artistas", "playlists": "Playlists",
+			"songs": "Songs", "albums": "Albums",
+			"artists": "Artists", "playlists": "Playlists",
 		}
 
 		for _, cat := range categories {
@@ -196,8 +195,8 @@ func (m Model) searchView() string {
 	}
 
 	b.WriteString(m.styles.Help.Render(
-		"Escribí pa' buscar  [Enter] buscar  [Tab] categoría  " +
-			"[↑↓] navegar  [Space] reproducir  [→] detalle  [q] volver",
+		"Type to search  [Enter] search  [Tab] category  " +
+			"[↑↓] navigate  [Space] play  [→] detail  [q] back",
 	))
 
 	return m.styles.App.Render(b.String())
@@ -232,7 +231,7 @@ func (m Model) detailView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] agregar a cola  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navigate  [Space] play  [a] add to queue  [q] back"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -240,11 +239,11 @@ func (m Model) detailView() string {
 func (m Model) queueView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" 📋 Cola "))
+	b.WriteString(m.styles.Title.Render(" 📋 Queue "))
 	b.WriteString("\n\n")
 
 	if len(m.queue) == 0 {
-		b.WriteString(m.styles.Info.Render("Cola vacía"))
+		b.WriteString(m.styles.Info.Render("Queue is empty"))
 	} else {
 		for i, t := range m.queue {
 			prefix := "  "
@@ -265,7 +264,7 @@ func (m Model) queueView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navigate  [Space] play  [q] back"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -273,11 +272,11 @@ func (m Model) queueView() string {
 func (m Model) libraryView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" 📚 Biblioteca "))
+	b.WriteString(m.styles.Title.Render(" 📚 Library "))
 	b.WriteString("\n\n")
 
 	if len(m.playlists) == 0 {
-		b.WriteString(m.styles.Info.Render("No hay playlists en tu biblioteca"))
+		b.WriteString(m.styles.Info.Render("No playlists in your library"))
 	} else {
 		for i, p := range m.playlists {
 			prefix := "  "
@@ -295,7 +294,7 @@ func (m Model) libraryView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [→] ver tracks  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navigate  [→] view tracks  [q] back"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -328,7 +327,7 @@ func (m Model) playlistTracksView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[↑↓] navegar  [Space] reproducir  [a] agregar a cola  [q] volver"))
+	b.WriteString(m.styles.Help.Render("[↑↓] navigate  [Space] play  [a] add to queue  [q] back"))
 
 	return m.styles.App.Render(b.String())
 }
@@ -336,14 +335,14 @@ func (m Model) playlistTracksView() string {
 func (m Model) lyricsView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" 🎤 Letra "))
+	b.WriteString(m.styles.Title.Render(" 🎤 Lyrics "))
 	b.WriteString("\n\n")
 
 	if m.lyrics == "" {
 		if m.loading {
-			b.WriteString(m.styles.Dimmed.Render("Cargando..."))
+			b.WriteString(m.styles.Dimmed.Render("Loading..."))
 		} else {
-			b.WriteString(m.styles.Info.Render("No hay letra disponible"))
+			b.WriteString(m.styles.Info.Render("No lyrics available"))
 		}
 	} else {
 		lines := strings.Split(m.lyrics, "\n")
@@ -359,7 +358,7 @@ func (m Model) lyricsView() string {
 	}
 
 	b.WriteString("\n")
-	b.WriteString(m.styles.Help.Render("[q/esc] volver"))
+	b.WriteString(m.styles.Help.Render("[q/esc] back"))
 
 	return m.styles.App.Render(b.String())
 }

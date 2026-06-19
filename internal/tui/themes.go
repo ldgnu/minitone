@@ -1,6 +1,6 @@
-// minitone - TUI pa' controlar Apple Music desde Cider
+// minitone - TUI for Apple Music via Cider
 // by ldgnu <ldgnu@users.noreply.github.com>
-// Usalo, rompelo, mejoralo — total, pa' eso estamos
+
 
 package tui
 
@@ -20,6 +20,16 @@ type Theme struct {
 }
 
 var themes = []Theme{
+	{
+		Name:       "fallout",
+		Primary:    lipgloss.Color("#00FF41"),
+		Dimmed:     lipgloss.Color("#005F00"),
+		Highlight:  lipgloss.Color("#00FF41"),
+		Active:     lipgloss.Color("#00FF41"),
+		Error:      lipgloss.Color("#FF0000"),
+		Progress:   lipgloss.Color("#00FF41"),
+		ProgressBg: lipgloss.Color("#003300"),
+	},
 	{
 		Name:       "system",
 		Primary:    lipgloss.Color("#FA5860"),
