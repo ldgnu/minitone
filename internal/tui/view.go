@@ -34,7 +34,8 @@ func (m Model) View() string {
 
 func (m Model) connectingView() string {
 	var b strings.Builder
-	b.WriteString(m.styles.Title.Render(" ♪ minitone "))
+
+	b.WriteString(m.styles.ProgressFull.Render(minitoneLogo()))
 	b.WriteString("\n\n")
 
 	if m.err != nil {
@@ -46,7 +47,7 @@ func (m Model) connectingView() string {
 		b.WriteString("\n\n")
 		b.WriteString(m.styles.Dimmed.Render("Presiona 'r' para reintentar, 'q' para salir"))
 	} else {
-		b.WriteString(m.styles.Info.Render("Conectando con Cider..."))
+		b.WriteString(m.styles.Dimmed.Render("Conectando con Cider..."))
 	}
 
 	return m.styles.App.Render(b.String())
@@ -55,9 +56,9 @@ func (m Model) connectingView() string {
 func (m Model) nowPlayingView() string {
 	var b strings.Builder
 
-	b.WriteString(m.styles.Title.Render(" ♪ minitone "))
+	b.WriteString(m.styles.ProgressFull.Render(minitoneLogo()))
 	theme := themes[m.themeIdx].Name
-	b.WriteString(m.styles.Help.Render(fmt.Sprintf(" [%s]", theme)))
+	b.WriteString(m.styles.Help.Render(fmt.Sprintf("  [%s]", theme)))
 	b.WriteString("\n\n")
 
 	np := m.nowPlaying
@@ -336,4 +337,10 @@ func (m Model) lyricsView() string {
 	b.WriteString(m.styles.Help.Render("[q/esc] volver"))
 
 	return m.styles.App.Render(b.String())
+}
+
+func minitoneLogo() string {
+	return `   ♪═♫═♪═♫═♪
+   ░ minitone ░
+   ♫═♪═♫═♪═♫`
 }
