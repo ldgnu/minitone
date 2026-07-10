@@ -40,6 +40,19 @@ See [`packaging/README.md`](packaging/README.md).
 go install github.com/ldgnu/minitone/cmd/minitone@latest
 ```
 
+### Prebuilt binary (any Linux)
+
+Grab the archive for your arch from the [releases](https://github.com/ldgnu/minitone/releases) page:
+
+```bash
+curl -L -o minitone.tgz https://github.com/ldgnu/minitone/releases/download/v0.2.1/minitone-0.2.1-linux-amd64.tar.gz
+tar xzf minitone.tgz
+sudo mv minitone /usr/local/bin/ && sudo chmod +x /usr/local/bin/minitone
+minitone
+```
+
+(arm64: `minitone-0.2.1-linux-arm64.tar.gz`)
+
 ### Manual
 
 ```bash
