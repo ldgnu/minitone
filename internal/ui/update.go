@@ -84,37 +84,72 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	key := msg.String()
 
-	// Global always-on shortcuts.
+	// Always-on shortcuts (work in both search and browse modes).
 	switch key {
 	case "ctrl+c":
 		return m, tea.Quit
-	case "enter", "esc", "up", "down", "k", "j", "tab", "shift+tab":
+	case "esc":
+		// Clear search and return to browse mode (letter shortcuts / j-k nav).
+		m.searchQuery = ""
+		m.searchResults = models.SearchResults{}
+		m.searchCursor = 0
+		m.searchGroup = 0
+		m.searchActive = false
+		m.searching = false
+		m.searchFocused = false
+		m.sm.Cancel()
+		m.err = nil
+		m.statusText = "type to search · f fav · ctrl+f/h panels · ? help · q quit"
+		return m, nil
+	case "enter":
+		return m.handleControlKey("enter")
+	case "tab", "shift+tab":
 		return m.handleControlKey(key)
-	case "backspace", "ctrl+h":
-		// ctrl+h is traditionally backspace; we use it for history panel
-		// only when search is empty. While typing, treat as backspace.
-		if key == "ctrl+h" && m.searchQuery == "" {
-			return m.openHistoryPanel()
-		}
-		return m.handleControlKey("backspace")
+	case "up", "down", "left", "right", "+", "=", "-":
+		return m.handleControlKey(key)
 	case "ctrl+j":
-		return m.handleControlKey(key)
+		return m.handleControlKey("ctrl+j")
 	case "ctrl+f":
 		return m.openFavoritesPanel()
 	case "ctrl+a":
 		return m.favoriteSelectedOrCurrent()
-	case "right", "left", "+", "=", "-":
-		return m.handleControlKey(key)
+	case "ctrl+h":
+		if m.searchQuery == "" {
+			return m.openHistoryPanel()
+		}
+		return m.handleControlKey("backspace")
+	case "backspace":
+		if len(m.searchQuery) > 0 {
+			r := []rune(m.searchQuery)
+			m.searchQuery = string(r[:len(r)-1])
+			m.triggerSearch()
+		}
+		return m, nil
 	case " ":
 		if m.searchQuery == "" {
 			_ = m.player.TogglePause()
 			return m, nil
 		}
 		m.searchQuery += " "
+		m.searchFocused = true
 		m.triggerSearch()
 		return m, nil
 	}
 
+	// Search (focused) mode: printable characters are typed, including j/k.
+	if m.searchFocused {
+		if key == "q" && m.searchQuery == "" {
+			return m, tea.Quit
+		}
+		if isPrintable(key) {
+			m.searchQuery += key
+			m.triggerSearch()
+			return m, nil
+		}
+		return m.handleControlKey(key)
+	}
+
+	// Browse (unfocused) mode: letter shortcuts + j/k navigation.
 	if m.searchQuery == "" {
 		switch key {
 		case "q":
@@ -153,10 +188,16 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "?":
 			m.showPanel = PanelHelp
 			return m, nil
+		case "j":
+			return m.handleControlKey("j")
+		case "k":
+			return m.handleControlKey("k")
 		}
 	}
 
 	if isPrintable(key) {
+		// First character starts typing.
+		m.searchFocused = true
 		m.searchQuery += key
 		m.triggerSearch()
 		return m, nil

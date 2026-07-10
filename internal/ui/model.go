@@ -47,6 +47,7 @@ type Model struct {
 	searchGroup  int
 	searchActive bool
 	searching    bool
+	searchFocused bool // true: typing into search (printable chars, incl. j/k); false: browse mode (letter shortcuts + j/k nav)
 
 	searchResults   models.SearchResults
 	searchResultsCh chan models.SearchResults
@@ -138,6 +139,7 @@ func New(d Deps) Model {
 		libraryScanner:  d.Library,
 		themeIdx:        themeIdx,
 		keys:            DefaultKeyMap(),
+		searchFocused:   true,
 		searchResultsCh: ch,
 		endedCh:         ended,
 		statusText:      "type to search · f fav · ctrl+f/h panels · ? help · q quit",

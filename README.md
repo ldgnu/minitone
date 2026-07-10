@@ -98,7 +98,7 @@ Type to search. Results are grouped by source. **enter** plays and queues.
 | `enter` | Play selected (+ queue) |
 | `esc` | Clear search / close panel |
 | `tab` / `shift+tab` | Next / prev source group |
-| `↑↓` / `k j` | Navigate |
+| `↑↓` | Navigate results |
 | `space` | Play / pause (search empty) |
 | `n` / `p` | Next / prev in queue |
 | `s` | Stop |
@@ -116,7 +116,7 @@ Type to search. Results are grouped by source. **enter** plays and queues.
 | `?` | Help |
 | `q` / `ctrl+c` | Quit |
 
-> Letter shortcuts (`q`, `f`, `h`, …) work when the search box is **empty**. While typing, use `ctrl+c` to quit, `enter` to play, `esc` to clear.
+> The search box is focused by default: just type (incl. `j`/`k`) to search. `esc` enters browse mode, where `j`/`k` navigate and letter shortcuts (`q`, `f`, `h`, `t`, …) work. While typing use `ctrl+c` to quit, `enter` to play.
 
 ### Panel shortcuts
 
