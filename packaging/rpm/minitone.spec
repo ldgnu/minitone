@@ -2,6 +2,7 @@ Name:           minitone
 Version:        0.2.3
 Release:        1%{?dist}
 Summary:        TUI music player for YouTube, Radio Browser, Navidrome and local files
+%global debug_package %{nil}
 
 License:        MIT
 URL:            https://github.com/ldgnu/minitone
@@ -32,13 +33,15 @@ install -Dm644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 
 %files
 %{_bindir}/minitone
-%doc README.md
-%license LICENSE
+%{_datadir}/doc/%{name}/README.md
+%{_datadir}/licenses/%{name}/LICENSE
 
 %changelog
-* Thu Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.2-1
+* Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.3-1
+- all letters type in search; single-key shortcuts work with empty box
+* Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.2-1
 - terminal (system) theme uses default fg; type j/k in search
-* Thu Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.1-1
+* Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.1-1
 - fix typing j/k in search
-* Thu Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.0-1
+* Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.0-1
 - multi-source TUI player (YouTube, Radio, Navidrome, library)
