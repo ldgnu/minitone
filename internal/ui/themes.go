@@ -18,7 +18,7 @@ type Theme struct {
 }
 
 var themes = []Theme{
-	{Name: "terminal", Primary: lipgloss.Color("4"), Dimmed: lipgloss.Color("8"), Highlight: lipgloss.Color("7"), Active: lipgloss.Color("15"), Error: lipgloss.Color("1"), Progress: lipgloss.Color("2"), ProgressBg: lipgloss.Color("0")},
+	{Name: "terminal", Primary: lipgloss.Color(""), Dimmed: lipgloss.Color(""), Highlight: lipgloss.Color(""), Active: lipgloss.Color(""), Error: lipgloss.Color("1"), Progress: lipgloss.Color("2"), ProgressBg: lipgloss.Color("")},
 	{Name: "fallout", Primary: lipgloss.Color("#00FF41"), Dimmed: lipgloss.Color("#005F00"), Highlight: lipgloss.Color("#00FF41"), Active: lipgloss.Color("#00FF41"), Error: lipgloss.Color("#FF0000"), Progress: lipgloss.Color("#00FF41"), ProgressBg: lipgloss.Color("#003300")},
 	{Name: "tokyonight", Primary: lipgloss.Color("#7AA2F7"), Dimmed: lipgloss.Color("#565F89"), Highlight: lipgloss.Color("#7DCFFF"), Active: lipgloss.Color("#A9B1D6"), Error: lipgloss.Color("#DB4B4B"), Progress: lipgloss.Color("#7AA2F7"), ProgressBg: lipgloss.Color("#3B4261")},
 	{Name: "everforest", Primary: lipgloss.Color("#A7C080"), Dimmed: lipgloss.Color("#859289"), Highlight: lipgloss.Color("#D3C6AA"), Active: lipgloss.Color("#E5E9C5"), Error: lipgloss.Color("#E67E80"), Progress: lipgloss.Color("#A7C080"), ProgressBg: lipgloss.Color("#4A5555")},
