@@ -1,27 +1,38 @@
 # minitone ♪
 
-TUI for Apple Music via Cider, like spotify-tui.
+TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, and **favorites**.
 
 by [ldgnu](https://github.com/ldgnu)
 
-## Requisitos
+## Requirements
 
-- **[Cider](https://cider.sh)** bajado y corriendo con RPC activado
-  - Settings → Connectivity → Websocket API → **Enable**
-  - (Opcional) Token de API en Manage External Application Access
+- **[mpv](https://mpv.io)** — playback backend
+- **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — YouTube search & stream resolve (optional but recommended)
+- Optional: a Navidrome (or Subsonic) server
+- **Go 1.22+** if building from source
 
-## Instalación
+## Install
 
-### Arch Linux (AUR — pronto)
+### Arch Linux (AUR)
 
 ```bash
+# from source
+yay -S minitone
+# or prebuilt binary (when published)
 yay -S minitone-bin
-
-# O manual
-git clone https://github.com/ldgnu/minitone
-cd minitone
-makepkg -si
 ```
+
+PKGBUILDs live in [`packaging/aur/`](packaging/aur/).
+
+### Debian / Ubuntu
+
+```bash
+# build a .deb from this repo
+make deb
+sudo dpkg -i dist/minitone_*.deb
+```
+
+See [`packaging/README.md`](packaging/README.md).
 
 ### go install
 
@@ -34,64 +45,128 @@ go install github.com/ldgnu/minitone/cmd/minitone@latest
 ```bash
 git clone https://github.com/ldgnu/minitone
 cd minitone
-go build -ldflags="-s -w" -o minitone ./cmd/minitone/
-sudo cp minitone /usr/local/bin/
+make build
+sudo make install
+# or just:
+./minitone
 ```
 
-## Uso
+## Config
+
+Optional file: `~/.config/minitone/config.json`
+
+```json
+{
+  "navidrome_url": "http://localhost:4533",
+  "navidrome_user": "user",
+  "navidrome_pass": "pass",
+  "theme": "fallout",
+  "volume": 70,
+  "library_paths": ["/home/you/Music"]
+}
+```
+
+| Variable | Description |
+|----------|-------------|
+| `NAVIDROME_URL` | Subsonic/Navidrome base URL |
+| `NAVIDROME_USER` | Username |
+| `NAVIDROME_PASS` | Password |
+| `MINITONE_THEME` / `AMUSIC_THEME` | Theme name |
+| `MINITONE_LIBRARY` | Extra library paths (`:`-separated) |
+
+Data files (auto-created):
+
+| File | Purpose |
+|------|---------|
+| `~/.config/minitone/favorites.json` | Favorites |
+| `~/.config/minitone/history.json` | Play history (last 200) |
+
+## Usage
 
 ```bash
-# Arrancá (Cider tiene que estar abierto)
 minitone
-
-# Con token
-CIDER_API_TOKEN=token minitone
-
-# Con storefront argento
-CIDER_STOREFRONT=ar minitone
-
-# Temita lindo
-AMUSIC_THEME=catppuccin minitone
+minitone --version
 ```
 
-### Controles
+Type to search. Results are grouped by source. **enter** plays and queues.
 
-| Tecla | Acción |
-|-------|--------|
-| `Space` | Play / Pausa |
-| `n` | Siguiente tema |
-| `p` | Tema anterior |
-| `+` / `-` | Volumen pa' arriba / abajo |
-| `s` | Buscar canciones |
-| `l` | Biblioteca (playlists) |
-| `w` | Ver cola |
-| `y` | Ver letra |
-| `t` | Cambiar tema visual |
-| `z` | Mezclar (shuffle) |
-| `x` | Repetir |
-| `q` | Volver / Salir |
-| `↑↓` / `jk` | Moverse en las listas |
-| `Enter` | Buscar |
-| `Tab` | Cambiar categoría |
+### Keys
 
-### Temas
+| Key | Action |
+|-----|--------|
+| type | Search |
+| `enter` | Play selected (+ queue) |
+| `esc` | Clear search / close panel |
+| `tab` / `shift+tab` | Next / prev source group |
+| `↑↓` / `k j` | Navigate |
+| `space` | Play / pause (search empty) |
+| `n` / `p` | Next / prev in queue |
+| `s` | Stop |
+| `+` / `-` | Volume |
+| `←` / `→` | Seek ±5s |
+| `m` | Mute toggle |
+| `f` | Toggle favorite (playing track) |
+| `ctrl+a` | Favorite selected search result |
+| `ctrl+f` | Favorites panel |
+| `h` | History panel |
+| `ctrl+j` | Queue panel (`d` delete, `f` fav) |
+| `S` | Shuffle |
+| `R` | Repeat off → all → one |
+| `t` | Cycle theme |
+| `?` | Help |
+| `q` / `ctrl+c` | Quit |
 
-`system`, `tokyonight`, `everforest`, `ayu`, `catppuccin`,
-`catppuccin-macchiato`, `gruvbox`, `kanagawa`, `nord`, `matrix`, `one-dark`
+> Letter shortcuts (`q`, `f`, `h`, …) work when the search box is **empty**. While typing, use `ctrl+c` to quit, `enter` to play, `esc` to clear.
 
-## Variables de entorno
+### Panel shortcuts
 
-| Variable | Default | Descripción |
-|----------|---------|-------------|
-| `CIDER_API_BASE` | `http://localhost:10767` | URL del RPC de Cider |
-| `CIDER_API_TOKEN` | — | Token de API de Cider |
-| `CIDER_STOREFRONT` | `us` | Storefront de Apple Music |
-| `AMUSIC_THEME` | `system` | Tema de colores |
+| Panel | Open | Inside |
+|-------|------|--------|
+| Favorites | `ctrl+f` | `enter` play · `f`/`d` remove · `a` queue all |
+| History | `h` | `enter` play · `d` remove · `c` clear · `f` fav |
+| Queue | `ctrl+j` | `enter` play · `d` delete · `f` fav |
 
-## TODO
+### Themes
 
-- [ ] Like / dislike
-- [ ] Carátula en la terminal (sixel / kitty)
-- [ ] Modo Chromium headless (sin depender de Cider)
-- [ ] Más temas
-- [ ] Config file (`~/.config/minitone/config.json`)
+`terminal`, `fallout`, `tokyonight`, `everforest`, `catppuccin`, `gruvbox`, `nord`, `kanagawa`, `dracula`, `monochrome`, `amber`
+
+## Develop
+
+```bash
+make test          # all tests
+make test-short    # skip live network
+make build
+make package       # tarball + deb → dist/
+make release       # test + vet + package
+```
+
+## Architecture
+
+```
+cmd/minitone          entrypoint
+internal/
+  app/                wires player, sources, search, store, UI
+  config/             config.json + env
+  player/             mpv IPC backend
+  queue/              shuffle / repeat queue
+  search/             multi-source search + fuzzy rank
+  store/              favorites + history (JSON)
+  source/
+    youtube/          yt-dlp
+    radio/            Radio Browser API
+    navidrome/        Subsonic wrapper
+    library/          local filesystem scan
+  subsonic/           Subsonic REST client
+  ui/                 Bubble Tea TUI
+  events/             event bus
+  models/             Song types
+  utils/              debounce, duration, keys
+packaging/
+  aur/                PKGBUILD (+ bin)
+  README.md           packaging docs
+scripts/build-deb.sh  Debian package builder
+```
+
+## License
+
+MIT — see [LICENSE](LICENSE).

@@ -4,33 +4,43 @@ import (
 	"fmt"
 	"os"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/ldgnu/minitone/internal/subsonic"
-	"github.com/ldgnu/minitone/internal/tui"
+	"github.com/ldgnu/minitone/internal/app"
 )
 
 func main() {
-	server := os.Getenv("NAVIDROME_URL")
-	user := os.Getenv("NAVIDROME_USER")
-	pass := os.Getenv("NAVIDROME_PASS")
+	if len(os.Args) > 1 {
+		switch os.Args[1] {
+		case "-v", "--version", "version":
+			fmt.Printf("minitone %s\n", app.Version)
+			return
+		case "-h", "--help", "help":
+			fmt.Print(`minitone — TUI music player
 
-	if server == "" || user == "" || pass == "" {
-		fmt.Fprintln(os.Stderr, "Set NAVIDROME_URL, NAVIDROME_USER and NAVIDROME_PASS")
-		os.Exit(1)
+Usage:
+  minitone              start the player
+  minitone --version    print version
+  minitone --help       this help
+
+Sources: YouTube, Radio Browser, Navidrome, local library, favorites.
+
+Config: ~/.config/minitone/config.json
+Data:   ~/.config/minitone/favorites.json
+        ~/.config/minitone/history.json
+
+Keys (search empty):
+  type to search · enter play · f favorite · h history
+  ctrl+f favorites · ctrl+j queue · space pause · q quit
+  ? help
+
+Requires: mpv, yt-dlp (for YouTube)
+`)
+			return
+		}
 	}
 
-	client := subsonic.NewClient(server, user, pass)
-	player := subsonic.NewPlayer(client)
-
-	p := tea.NewProgram(
-		tui.NewModel(client, player),
-		tea.WithAltScreen(),
-	)
-
-	if _, err := p.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
+	a := app.New()
+	if err := a.Run(); err != nil {
+		fmt.Fprintf(os.Stderr, "minitone: %v\n", err)
 		os.Exit(1)
 	}
-
-	player.Close()
 }

@@ -1,4 +1,10 @@
 /minitone
 minitone.exe
 *.tar.gz
+*.deb
 dist/
+packaging/aur/pkg/
+packaging/aur/src/
+packaging/aur/*.tar.gz
+packaging/aur/*.tar.zst
+

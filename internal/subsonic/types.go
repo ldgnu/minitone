@@ -30,10 +30,8 @@ type Song struct {
 	Size       int64  `json:"size"`
 	Suffix     string `json:"suffix"`
 	Path       string `json:"path"`
-	IsDir      bool   `json:"isDir"`
 	Created    string `json:"created"`
 	AlbumArtID string `json:"coverArt"`
-	PlayCount  int64  `json:"playCount"`
 }
 
 type Playlist struct {
