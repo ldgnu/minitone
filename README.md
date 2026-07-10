@@ -180,6 +180,24 @@ packaging/
 scripts/build-deb.sh  Debian package builder
 ```
 
+## Legal / Disclaimer
+
+`minitone` is **not** affiliated with, endorsed by, or sponsored by YouTube,
+Google, or any music service. It is a personal, open-source tool for playing
+audio you have the right to access.
+
+YouTube (and other remote) playback is delegated to third-party, locally
+installed tools — `yt-dlp` for search/resolve and `mpv` for playback. `minitone`
+**does not host, copy, redistribute, or modify any copyrighted content**; it only
+builds a URL and hands it to your local player.
+
+You are responsible for complying with the terms of service of each source and
+with the copyright laws that apply in your jurisdiction. Use at your own risk.
+
+If you prefer not to use YouTube, it is an optional dependency: the app also
+works fully with Radio Browser, a Navidrome/Subsonic server and your local
+library. You can disable it by leaving `yt-dlp` uninstalled.
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
