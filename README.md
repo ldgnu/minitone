@@ -45,13 +45,13 @@ go install github.com/ldgnu/minitone/cmd/minitone@latest
 Grab the archive for your arch from the [releases](https://github.com/ldgnu/minitone/releases) page:
 
 ```bash
-curl -L -o minitone.tgz https://github.com/ldgnu/minitone/releases/download/v0.2.2/minitone-0.2.2-linux-amd64.tar.gz
+curl -L -o minitone.tgz https://github.com/ldgnu/minitone/releases/download/v0.2.3/minitone-0.2.3-linux-amd64.tar.gz
 tar xzf minitone.tgz
 sudo mv minitone /usr/local/bin/ && sudo chmod +x /usr/local/bin/minitone
 minitone
 ```
 
-(arm64: `minitone-0.2.2-linux-arm64.tar.gz`)
+(arm64: `minitone-0.2.3-linux-arm64.tar.gz`)
 
 ### Manual
 

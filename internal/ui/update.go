@@ -84,22 +84,21 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	key := msg.String()
 
-	// Always-on shortcuts (work in both search and browse modes).
+	// Always-on shortcuts (work while typing and while browsing).
 	switch key {
 	case "ctrl+c":
 		return m, tea.Quit
 	case "esc":
-		// Clear search and return to browse mode (letter shortcuts / j-k nav).
+		// Clear search.
 		m.searchQuery = ""
 		m.searchResults = models.SearchResults{}
 		m.searchCursor = 0
 		m.searchGroup = 0
 		m.searchActive = false
 		m.searching = false
-		m.searchFocused = false
 		m.sm.Cancel()
 		m.err = nil
-		m.statusText = "type to search · f fav · ctrl+f/h panels · ? help · q quit"
+		m.statusText = "type to search · t theme · f fav · h history · ? help · q quit"
 		return m, nil
 	case "enter":
 		return m.handleControlKey("enter")
@@ -131,25 +130,12 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.searchQuery += " "
-		m.searchFocused = true
 		m.triggerSearch()
 		return m, nil
 	}
 
-	// Search (focused) mode: printable characters are typed, including j/k.
-	if m.searchFocused {
-		if key == "q" && m.searchQuery == "" {
-			return m, tea.Quit
-		}
-		if isPrintable(key) {
-			m.searchQuery += key
-			m.triggerSearch()
-			return m, nil
-		}
-		return m.handleControlKey(key)
-	}
-
-	// Browse (unfocused) mode: letter shortcuts + j/k navigation.
+	// Single-key shortcuts — only when the search box is empty.
+	// j/k are intentionally NOT here so they can be typed to start a search.
 	if m.searchQuery == "" {
 		switch key {
 		case "q":
@@ -188,16 +174,11 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		case "?":
 			m.showPanel = PanelHelp
 			return m, nil
-		case "j":
-			return m.handleControlKey("j")
-		case "k":
-			return m.handleControlKey("k")
 		}
 	}
 
+	// Anything printable is typed into the search (j/k included).
 	if isPrintable(key) {
-		// First character starts typing.
-		m.searchFocused = true
 		m.searchQuery += key
 		m.triggerSearch()
 		return m, nil
