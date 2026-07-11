@@ -3,7 +3,8 @@ package ui
 import (
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea 	"github.com/charmbracelet/bubbletea"
+	"image"
 	"github.com/ldgnu/minitone/internal/models"
 	"github.com/ldgnu/minitone/internal/player"
 	"github.com/ldgnu/minitone/internal/queue"
@@ -74,6 +75,10 @@ type Model struct {
 
 	err        error
 	statusText string
+
+	// YouTube thumbnail preview (braille/ANSI art) for the selected result.
+	thumbs   map[string]image.Image
+	thumbURL string
 
 	keys KeyMap
 }

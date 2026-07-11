@@ -51,12 +51,13 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 
 	var result struct {
 		Entries []struct {
-			Title    string  `json:"title"`
-			ID       string  `json:"id"`
-			Duration float64 `json:"duration"`
-			Webpage  string  `json:"webpage_url"`
-			Channel  string  `json:"channel"`
-			Uploader string  `json:"uploader"`
+			Title     string  `json:"title"`
+			ID        string  `json:"id"`
+			Duration  float64 `json:"duration"`
+			Webpage   string  `json:"webpage_url"`
+			Thumbnail string  `json:"thumbnail"`
+			Channel   string  `json:"channel"`
+			Uploader  string  `json:"uploader"`
 		} `json:"entries"`
 	}
 	if err := json.Unmarshal(out, &result); err != nil || len(result.Entries) == 0 {
@@ -77,13 +78,14 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 			url = "https://www.youtube.com/watch?v=" + e.ID
 		}
 		songs = append(songs, models.Song{
-			ID:       "yt:" + e.ID,
-			Source:   models.SourceYouTube,
-			SourceID: e.ID,
-			Title:    e.Title,
-			Artist:   artist,
-			Duration: int(e.Duration),
-			URL:      url,
+			ID:        "yt:" + e.ID,
+			Source:    models.SourceYouTube,
+			SourceID:  e.ID,
+			Title:     e.Title,
+			Artist:    artist,
+			Duration:  int(e.Duration),
+			URL:       url,
+			Thumbnail: ytThumbnail(e.ID),
 		})
 	}
 	return songs, nil
@@ -91,7 +93,7 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 
 func (c *Client) searchFallback(ctx context.Context, query string, limit int) ([]models.Song, error) {
 	cmd := exec.CommandContext(ctx, "yt-dlp",
-		"--print", "%(title)s\t%(id)s\t%(channel)s\t%(duration)s",
+		"--print", "%(title)s\t%(id)s\t%(channel)s\t%(duration)s\t%(thumbnail)s",
 		"--no-warnings",
 		fmt.Sprintf("ytsearch%d:%s", limit, query),
 	)
@@ -120,13 +122,14 @@ func (c *Client) searchFallback(ctx context.Context, query string, limit int) ([
 			fmt.Sscanf(strings.TrimSpace(parts[3]), "%d", &dur)
 		}
 		songs = append(songs, models.Song{
-			ID:       "yt:" + id,
-			Source:   models.SourceYouTube,
-			SourceID: id,
-			Title:    strings.TrimSpace(parts[0]),
-			Artist:   artist,
-			Duration: dur,
-			URL:      "https://www.youtube.com/watch?v=" + id,
+			ID:        "yt:" + id,
+			Source:    models.SourceYouTube,
+			SourceID:  id,
+			Title:     strings.TrimSpace(parts[0]),
+			Artist:    artist,
+			Duration:  dur,
+			Thumbnail: ytThumbnail(id),
+			URL:       "https://www.youtube.com/watch?v=" + id,
 		})
 	}
 	return songs, nil
@@ -178,4 +181,12 @@ func (c *Client) ResolveSongContext(ctx context.Context, song models.Song) (stri
 	}
 	_, streamURL, err := c.ResolveContext(ctx, url)
 	return streamURL, err
+}
+
+// ytThumbnail returns the standard YouTube thumbnail URL for a video id.
+func ytThumbnail(id string) string {
+	if id == "" {
+		return ""
+	}
+	return "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"
 }

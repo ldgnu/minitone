@@ -12,7 +12,9 @@
   <img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"/>
 </p>
 
-TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, and **favorites**.
+ TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, and **favorites**.
+
+ Selected YouTube results show a live **thumbnail preview** (rendered as ANSI/braille art, so it works in any terminal — no graphics protocol needed).
 
 by [ldgnu](https://github.com/ldgnu)
 
@@ -22,7 +24,7 @@ by [ldgnu](https://github.com/ldgnu)
 
 ## Requirements
 
-- **[mpv](https://mpv.io)** — playback backend
+- **[mpv](https://mpv.io)** — playback backend (required). For **video mode** (`ctrl+v`) you need a normal mpv **with video output** and a graphical session (X11/Wayland); on a headless server only audio plays. `ffmpeg` is recommended so mpv can handle more formats.
 - **[yt-dlp](https://github.com/yt-dlp/yt-dlp)** — YouTube search & stream resolve (optional but recommended)
 - Optional: a Navidrome (or Subsonic) server
 - **Go 1.22+** if building from source

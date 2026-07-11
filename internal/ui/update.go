@@ -3,6 +3,7 @@ package ui
 import (
 	"context"
 	"fmt"
+	"image"
 	"time"
 	"unicode"
 
@@ -36,13 +37,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		} else if m.searchQuery != "" {
 			m.statusText = "no results"
 		}
-		return m, m.waitResults()
+		m, cmd := m.maybeFetchThumb()
+		return m, tea.Batch(cmd, m.waitResults())
 
 	case songEndedMsg:
 		return m, tea.Batch(m.autoAdvance(), m.waitEnded())
 
 	case tickMsg:
 		return m, tickCmd()
+
+	case thumbMsg:
+		if msg.err != nil {
+			return m, nil
+		}
+		if m.thumbs == nil {
+			m.thumbs = map[string]image.Image{}
+		}
+		m.thumbs[msg.url] = msg.img
+		return m, nil
 
 	case playErrMsg:
 		m.err = msg.err
@@ -306,7 +318,8 @@ func (m Model) handleControlKey(key string) (tea.Model, tea.Cmd) {
 	case "p":
 		return m, m.playPrev()
 	}
-	return m, nil
+	m, cmd := m.maybeFetchThumb()
+	return m, cmd
 }
 
 func (m Model) cycleRepeat() (tea.Model, tea.Cmd) {

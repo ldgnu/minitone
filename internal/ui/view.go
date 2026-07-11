@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/charmbracelet/lipgloss"
+	"github.com/ldgnu/minitone/internal/models"
 	"github.com/ldgnu/minitone/internal/player"
 	"github.com/ldgnu/minitone/internal/queue"
 	"github.com/ldgnu/minitone/internal/utils"
@@ -64,6 +65,28 @@ func (m Model) View() string {
 			panelR := m.renderQueuePanel(rightW, resultsH)
 			results = lipgloss.JoinHorizontal(lipgloss.Top, resultsR, panelR)
 		}
+	case PanelNone:
+		s := m.selectedSong()
+		if s != nil && s.Source == models.SourceYouTube && s.Thumbnail != "" {
+			if _, ok := m.thumbs[s.Thumbnail]; ok {
+				leftW := (m.width * 2) / 3
+				rightW := m.width - leftW - 1
+				if rightW < 20 {
+					rightW = 20
+					leftW = m.width - rightW - 1
+				}
+				base := m.renderResults(resultsH)
+				if leftW < 10 {
+					results = m.styles.Results.Width(m.width).Height(resultsH).Render(base)
+				} else {
+					resultsR := m.styles.Results.Width(leftW).Height(resultsH).Render(base)
+					panelR := m.renderThumbPanel(rightW, resultsH)
+					results = lipgloss.JoinHorizontal(lipgloss.Top, resultsR, panelR)
+				}
+				break
+			}
+		}
+		results = m.styles.Results.Width(m.width).Height(resultsH).Render(m.renderResults(resultsH))
 	default:
 		results = m.styles.Results.Width(m.width).Height(resultsH).Render(m.renderResults(resultsH))
 	}
