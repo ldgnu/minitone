@@ -21,7 +21,7 @@ import (
 )
 
 // Version is set at link time via -ldflags "-X ...Version=x.y.z"
-var Version = "0.2.3"
+var Version = "0.2.4"
 
 type App struct {
 	cfg    *config.Config

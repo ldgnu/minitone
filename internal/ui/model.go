@@ -47,6 +47,7 @@ type Model struct {
 	searchGroup  int
 	searchActive bool
 	searching    bool
+	videoMode    bool // when true, YouTube results play with video in mpv
 
 	searchResults   models.SearchResults
 	searchResultsCh chan models.SearchResults

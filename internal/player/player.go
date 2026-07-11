@@ -60,6 +60,11 @@ type Player struct {
 	closed  bool
 	onEnded func()
 	prevVol int
+
+	// Separate mpv instance used for YouTube video playback (video mode).
+	videoCmd    *exec.Cmd
+	videoPlaying bool
+	videoTitle  string
 }
 
 func New() *Player {
@@ -361,6 +366,60 @@ func (p *Player) SetVolume(v int) {
 	events.Global().Emit(events.EventVolumeChanged, v)
 }
 
+// PlayVideo launches a standalone mpv window with video for the given URL
+// (used for YouTube videos when video mode is enabled). It does not use the
+// shared audio backend. The process is tracked so it can be stopped and its
+// end is reported via the event bus.
+func (p *Player) PlayVideo(url, title string) error {
+	if url == "" {
+		return fmt.Errorf("empty video URL")
+	}
+
+	p.mu.Lock()
+	if p.videoCmd != nil && p.videoCmd.Process != nil {
+		_ = p.videoCmd.Process.Kill()
+	}
+	cmd := exec.Command("mpv", "--no-terminal", "--quiet", "--title="+title, url)
+	p.videoCmd = cmd
+	p.videoTitle = title
+	p.videoPlaying = true
+	p.mu.Unlock()
+
+	if err := cmd.Start(); err != nil {
+		p.mu.Lock()
+		p.videoPlaying = false
+		p.videoTitle = ""
+		p.videoCmd = nil
+		p.mu.Unlock()
+		return err
+	}
+
+	go func() {
+		_ = cmd.Wait()
+		p.mu.Lock()
+		p.videoPlaying = false
+		p.videoTitle = ""
+		p.videoCmd = nil
+		p.mu.Unlock()
+		events.Global().Emit(events.EventSongStopped, nil)
+	}()
+	return nil
+}
+
+// VideoPlaying reports whether a video mpv instance is running.
+func (p *Player) VideoPlaying() bool {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.videoPlaying
+}
+
+// VideoTitle returns the title of the currently playing video, if any.
+func (p *Player) VideoTitle() string {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return p.videoTitle
+}
+
 // ToggleMute mutes or restores previous volume.
 func (p *Player) ToggleMute() {
 	p.mu.Lock()
@@ -409,6 +468,14 @@ func (p *Player) Close() {
 	}
 	p.closed = true
 	p.mu.Unlock()
+
+	// Stop any standalone video mpv instance.
+	if p.videoCmd != nil && p.videoCmd.Process != nil {
+		_ = p.videoCmd.Process.Kill()
+	}
+	p.videoCmd = nil
+	p.videoPlaying = false
+	p.videoTitle = ""
 
 	close(p.done)
 

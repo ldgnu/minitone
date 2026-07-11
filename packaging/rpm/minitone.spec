@@ -1,5 +1,5 @@
 Name:           minitone
-Version:        0.2.3
+Version:        0.2.4
 Release:        1%{?dist}
 Summary:        TUI music player for YouTube, Radio Browser, Navidrome and local files
 %global debug_package %{nil}
@@ -37,6 +37,12 @@ install -Dm644 LICENSE %{buildroot}%{_datadir}/licenses/%{name}/LICENSE
 %{_datadir}/licenses/%{name}/LICENSE
 
 %changelog
+* Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.4-1
+- action shortcuts moved to Ctrl (ctrl+t theme, ctrl+f fav, ctrl+h hist,
+  ctrl+j queue, ctrl+s stop, ctrl+n/p next/prev, ctrl+m mute, ctrl+r repeat,
+  ctrl+u shuffle, ctrl+v video, ctrl+/ help); esc returns back
+- footer bar with shortcuts and info
+- YouTube video mode: ctrl+v plays videos with video in mpv
 * Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.3-1
 - all letters type in search; single-key shortcuts work with empty box
 * Fri Jul 10 2026 ldgnu <ldgnu@users.noreply.github.com> - 0.2.2-1

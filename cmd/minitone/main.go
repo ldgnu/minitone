@@ -28,9 +28,10 @@ Data:   ~/.config/minitone/favorites.json
         ~/.config/minitone/history.json
 
 Keys (search empty):
-  type to search · enter play · f favorite · h history
-  ctrl+f favorites · ctrl+j queue · space pause · q quit
-  ? help
+  type to search · enter play · f favorite · ctrl+h history
+  ctrl+f favorites · ctrl+j queue · ctrl+v video · space pause
+  ctrl+t theme · ctrl+s stop · ? help · q quit
+  esc back · ctrl+c quit
 
 Requires: mpv, yt-dlp (for YouTube)
 `)

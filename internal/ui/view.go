@@ -23,7 +23,8 @@ func (m Model) View() string {
 	searchH := 1
 	playerH := 1
 	statusH := 1
-	resultsH := m.height - headerH - searchH - playerH - statusH
+	footerH := 2
+	resultsH := m.height - headerH - searchH - playerH - statusH - footerH
 	if resultsH < 3 {
 		resultsH = 3
 	}
@@ -32,11 +33,13 @@ func (m Model) View() string {
 	searchLine := m.renderSearch()
 	playerLine := m.renderPlayer()
 	status := m.renderStatus()
+	footer := m.renderFooter()
 
 	hR := m.styles.Header.Width(m.width).Render(header)
 	sR := m.styles.Search.Width(m.width).Render(searchLine)
 	pR := m.styles.Player.Width(m.width).Render(playerLine)
 	stR := m.styles.Status.Width(m.width).Render(status)
+	fR := m.styles.Dimmed.Width(m.width).Render(footer)
 
 	var results string
 	switch m.showPanel {
@@ -65,7 +68,7 @@ func (m Model) View() string {
 		results = m.styles.Results.Width(m.width).Height(resultsH).Render(m.renderResults(resultsH))
 	}
 
-	return lipgloss.JoinVertical(lipgloss.Left, hR, sR, results, pR, stR)
+	return lipgloss.JoinVertical(lipgloss.Left, hR, sR, results, pR, stR, fR)
 }
 
 func (m Model) renderHeader() string {
@@ -252,19 +255,27 @@ func (m Model) renderWelcome(h int) string {
 	b.WriteString("\n\n")
 	b.WriteString(m.styles.Dimmed.Render(" enter     play selected"))
 	b.WriteString("\n")
-	b.WriteString(m.styles.Dimmed.Render(" f         toggle favorite (playing track)"))
+	b.WriteString(m.styles.Dimmed.Render(" ctrl+a    favorite selected / playing track"))
 	b.WriteString("\n")
-	b.WriteString(m.styles.Dimmed.Render(" ctrl+a    favorite selected result"))
+	b.WriteString(m.styles.Dimmed.Render(" ctrl+f    favorites · ctrl+h history · ctrl+j queue"))
 	b.WriteString("\n")
-	b.WriteString(m.styles.Dimmed.Render(" ctrl+f    favorites · h history · ctrl+j queue"))
+	b.WriteString(m.styles.Dimmed.Render(" space     play/pause · ctrl+n/p next/prev"))
 	b.WriteString("\n")
-	b.WriteString(m.styles.Dimmed.Render(" space     play/pause · n/p next/prev"))
-	b.WriteString("\n")
-	b.WriteString(m.styles.Dimmed.Render(" t theme · S shuffle · R repeat · ? help · q quit"))
+	b.WriteString(m.styles.Dimmed.Render(" ctrl+t theme · ctrl+v video · ctrl+r repeat · ctrl+u shuffle · ctrl+/ help"))
 	return b.String()
 }
 
 func (m Model) renderPlayer() string {
+	if m.player.VideoPlaying() {
+		left := " 🎬 " + m.player.VideoTitle()
+		right := "video"
+		sp := m.width - lipgloss.Width(left) - lipgloss.Width(right) - 1
+		if sp < 1 {
+			sp = 1
+		}
+		return m.styles.Player.Render(left + strings.Repeat(" ", sp) + right)
+	}
+
 	status := m.player.Status()
 	if status.Song.Title == "" {
 		return m.styles.Dimmed.Render(" ♪ no track playing")
@@ -458,26 +469,25 @@ func (m Model) renderHelp(h int) string {
 	b.WriteString("\n\n")
 
 	helpItems := []string{
-		"type           search (YouTube / Radio / Navidrome / Library)",
-		"enter          play selected (+ add to queue)",
-		"esc            clear search / close panel",
-		"tab/shift+tab  next/prev source group",
-		"↑↓ / k j       navigate",
-		"space          play/pause (search empty)",
-		"n / p          next / previous in queue",
-		"s              stop",
-		"+/-            volume",
-		"←/→            seek ±5s",
-		"m              mute toggle",
-		"f              toggle favorite (playing track)",
-		"ctrl+a         favorite selected search result",
-		"ctrl+f         favorites panel",
-		"h              history panel",
-		"ctrl+j         queue panel (d delete, f favorite)",
-		"S / R          shuffle / repeat",
-		"t              cycle theme",
-		"?              toggle this help",
-		"q / ctrl+c     quit",
+		"type              search (YouTube / Radio / Navidrome / Library)",
+		"enter             play selected (+ add to queue)",
+		"esc               back: close panel / clear search",
+		"tab / shift+tab   next / prev source group",
+		"↑ ↓ ← →           navigate / seek / volume",
+		"space             play / pause (when not searching)",
+		"ctrl+t            cycle theme",
+		"ctrl+f            favorites panel",
+		"ctrl+a            favorite selected / playing track",
+		"ctrl+h            history panel",
+		"ctrl+j            queue panel (d delete, f favorite)",
+		"ctrl+s            stop",
+		"ctrl+n / ctrl+p   next / previous in queue",
+		"ctrl+m            mute toggle",
+		"ctrl+r            repeat: off → all → one",
+		"ctrl+u            shuffle toggle",
+		"ctrl+v            video mode (YouTube plays with video)",
+		"ctrl+/            toggle this help",
+		"ctrl+c            quit",
 	}
 
 	for _, line := range helpItems {
@@ -486,6 +496,16 @@ func (m Model) renderHelp(h int) string {
 	}
 
 	return m.styles.Panel.Width(m.width).Height(h).Render(b.String())
+}
+
+func (m Model) renderFooter() string {
+	line1 := "ctrl+t theme · ctrl+f fav · ctrl+j queue · ctrl+h hist · ctrl+s stop · space play · enter play"
+	line2 := "ctrl+n/p next/prev · ctrl+r repeat · ctrl+u shuffle · ctrl+v video"
+	if m.videoMode {
+		line2 += " [ON]"
+	}
+	line2 += " · ctrl+/ help · esc back · ctrl+c quit"
+	return line1 + "\n" + line2
 }
 
 func renderProgressBar(w int, ratio float64) string {

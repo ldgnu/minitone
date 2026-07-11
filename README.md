@@ -109,27 +109,28 @@ Type to search. Results are grouped by source. **enter** plays and queues.
 |-----|--------|
 | type | Search |
 | `enter` | Play selected (+ queue) |
-| `esc` | Clear search / close panel |
+| `esc` | Back: clear search / close panel |
 | `tab` / `shift+tab` | Next / prev source group |
 | `↑↓` | Navigate results |
 | `space` | Play / pause (search empty) |
-| `n` / `p` | Next / prev in queue |
-| `s` | Stop |
+| `ctrl+n` / `ctrl+p` | Next / prev in queue |
+| `ctrl+s` | Stop |
 | `+` / `-` | Volume |
 | `←` / `→` | Seek ±5s |
-| `m` | Mute toggle |
+| `ctrl+m` | Mute toggle |
 | `f` | Toggle favorite (playing track) |
 | `ctrl+a` | Favorite selected search result |
 | `ctrl+f` | Favorites panel |
-| `h` | History panel |
+| `ctrl+h` | History panel |
 | `ctrl+j` | Queue panel (`d` delete, `f` fav) |
-| `S` | Shuffle |
-| `R` | Repeat off → all → one |
-| `t` | Cycle theme |
-| `?` | Help |
+| `ctrl+u` | Shuffle toggle |
+| `ctrl+r` | Repeat off → all → one |
+| `ctrl+t` | Cycle theme |
+| `ctrl+v` | Toggle video mode (YouTube plays with video) |
+| `?` / `ctrl+/` | Help |
 | `q` / `ctrl+c` | Quit |
 
-> The search box is focused by default: just type (incl. `j`/`k`) to search. `esc` enters browse mode, where `j`/`k` navigate and letter shortcuts (`q`, `f`, `h`, `t`, …) work. While typing use `ctrl+c` to quit, `enter` to play.
+> The search box is focused by default: just type (incl. `j`/`k`) to search. `esc` returns back — closing any open panel, or clearing the search box. Action shortcuts use `ctrl` to keep the search box always typing. While typing use `ctrl+c` to quit, `enter` to play.
 
 ### Panel shortcuts
 

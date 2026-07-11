@@ -84,12 +84,17 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 
 	key := msg.String()
 
-	// Always-on shortcuts (work while typing and while browsing).
+	// All shortcuts use Ctrl combos so every printable key (incl. j/k/t/f…)
+	// is free to type into the search. Navigation is on the arrow keys.
 	switch key {
 	case "ctrl+c":
 		return m, tea.Quit
 	case "esc":
-		// Clear search.
+		// Back: close any open panel, otherwise clear the search.
+		if m.showPanel != PanelNone {
+			m.showPanel = PanelNone
+			return m, nil
+		}
 		m.searchQuery = ""
 		m.searchResults = models.SearchResults{}
 		m.searchCursor = 0
@@ -98,7 +103,7 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.searching = false
 		m.sm.Cancel()
 		m.err = nil
-		m.statusText = "type to search · t theme · f fav · h history · ? help · q quit"
+		m.statusText = "type to search · ctrl+/ help · ctrl+f favorites · ctrl+h history · esc back"
 		return m, nil
 	case "enter":
 		return m.handleControlKey("enter")
@@ -106,6 +111,21 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m.handleControlKey(key)
 	case "up", "down", "left", "right", "+", "=", "-":
 		return m.handleControlKey(key)
+	case " ":
+		if m.searchQuery == "" {
+			_ = m.player.TogglePause()
+			return m, nil
+		}
+		m.searchQuery += " "
+		m.triggerSearch()
+		return m, nil
+	case "backspace":
+		if len(m.searchQuery) > 0 {
+			r := []rune(m.searchQuery)
+			m.searchQuery = string(r[:len(r)-1])
+			m.triggerSearch()
+		}
+		return m, nil
 	case "ctrl+j":
 		return m.handleControlKey("ctrl+j")
 	case "ctrl+f":
@@ -117,67 +137,47 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m.openHistoryPanel()
 		}
 		return m.handleControlKey("backspace")
-	case "backspace":
-		if len(m.searchQuery) > 0 {
-			r := []rune(m.searchQuery)
-			m.searchQuery = string(r[:len(r)-1])
-			m.triggerSearch()
+	case "ctrl+t":
+		m.themeIdx = (m.themeIdx + 1) % len(themes)
+		m.styles = NewStyles(themes[m.themeIdx])
+		m.statusText = fmt.Sprintf("theme: %s", themes[m.themeIdx].Name)
+		return m, nil
+	case "ctrl+s":
+		_ = m.player.Stop()
+		m.statusText = "stopped"
+		return m, nil
+	case "ctrl+n":
+		return m, m.playNext()
+	case "ctrl+p":
+		return m, m.playPrev()
+	case "ctrl+m":
+		m.player.ToggleMute()
+		m.statusText = fmt.Sprintf("vol %d%%", m.player.Volume())
+		return m, nil
+	case "ctrl+r":
+		return m.cycleRepeat()
+	case "ctrl+u":
+		m.queue.SetShuffle(!m.queue.Shuffle())
+		if m.queue.Shuffle() {
+			m.statusText = "shuffle on"
+		} else {
+			m.statusText = "shuffle off"
 		}
 		return m, nil
-	case " ":
-		if m.searchQuery == "" {
-			_ = m.player.TogglePause()
-			return m, nil
+	case "ctrl+v":
+		m.videoMode = !m.videoMode
+		if m.videoMode {
+			m.statusText = "video mode ON — YouTube plays with video (needs yt-dlp)"
+		} else {
+			m.statusText = "video mode OFF — audio only"
 		}
-		m.searchQuery += " "
-		m.triggerSearch()
+		return m, nil
+	case "ctrl+/":
+		m.showPanel = PanelHelp
 		return m, nil
 	}
 
-	// Single-key shortcuts — only when the search box is empty.
-	// j/k are intentionally NOT here so they can be typed to start a search.
-	if m.searchQuery == "" {
-		switch key {
-		case "q":
-			return m, tea.Quit
-		case "s":
-			_ = m.player.Stop()
-			m.statusText = "stopped"
-			return m, nil
-		case "n":
-			return m, m.playNext()
-		case "p":
-			return m, m.playPrev()
-		case "m":
-			m.player.ToggleMute()
-			m.statusText = fmt.Sprintf("vol %d%%", m.player.Volume())
-			return m, nil
-		case "t":
-			m.themeIdx = (m.themeIdx + 1) % len(themes)
-			m.styles = NewStyles(themes[m.themeIdx])
-			m.statusText = fmt.Sprintf("theme: %s", themes[m.themeIdx].Name)
-			return m, nil
-		case "S":
-			m.queue.SetShuffle(!m.queue.Shuffle())
-			if m.queue.Shuffle() {
-				m.statusText = "shuffle on"
-			} else {
-				m.statusText = "shuffle off"
-			}
-			return m, nil
-		case "R":
-			return m.cycleRepeat()
-		case "f":
-			return m.toggleFavoriteCurrent()
-		case "h":
-			return m.openHistoryPanel()
-		case "?":
-			m.showPanel = PanelHelp
-			return m, nil
-		}
-	}
-
-	// Anything printable is typed into the search (j/k included).
+	// Anything printable is typed into the search (all letters, incl. j/k/t/f…).
 	if isPrintable(key) {
 		m.searchQuery += key
 		m.triggerSearch()
@@ -557,10 +557,26 @@ func (m Model) resolveAndPlay(song models.Song) tea.Cmd {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		var streamURL string
-		var err error
+	var streamURL string
+	var err error
 
-		switch song.Source {
+	// Video mode: play YouTube results in a real mpv window (with video).
+	if m.videoMode && song.Source == models.SourceYouTube {
+		url := song.URL
+		if url == "" {
+			if song.SourceID == "" {
+				return playErrMsg{err: fmt.Errorf("no youtube id")}
+			}
+			url = "https://www.youtube.com/watch?v=" + song.SourceID
+		}
+		_ = p.Stop()
+		if vErr := p.PlayVideo(url, song.Title); vErr != nil {
+			return playErrMsg{err: vErr}
+		}
+		return playOKMsg{song: song}
+	}
+
+	switch song.Source {
 		case models.SourceYouTube:
 			if yt == nil {
 				return playErrMsg{err: fmt.Errorf("youtube client unavailable")}
