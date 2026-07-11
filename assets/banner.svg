@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1a1b26"/>
+      <stop offset="55%" stop-color="#24283b"/>
+      <stop offset="100%" stop-color="#2a2e42"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#7aa2f7"/>
+      <stop offset="100%" stop-color="#bb9af7"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="400" fill="url(#bg)"/>
+
+  <!-- decorative equalizer bars -->
+  <g fill="url(#accent)" opacity="0.18">
+    <rect x="60"  y="250" width="14" height="90"  rx="6"/>
+    <rect x="84"  y="200" width="14" height="140" rx="6"/>
+    <rect x="108" y="280" width="14" height="60"  rx="6"/>
+    <rect x="132" y="170" width="14" height="170" rx="6"/>
+    <rect x="156" y="240" width="14" height="100" rx="6"/>
+    <rect x="180" y="290" width="14" height="50"  rx="6"/>
+  </g>
+
+  <!-- music note -->
+  <g filter="url(#glow)" fill="url(#accent)">
+    <text x="470" y="240" font-family="DejaVu Sans, sans-serif" font-size="170">&#9835;</text>
+  </g>
+
+  <!-- wordmark -->
+  <text x="600" y="210" font-family="DejaVu Sans, sans-serif" font-weight="bold" font-size="120" fill="#c0caf5" letter-spacing="-2">minitone</text>
+  <text x="604" y="270" font-family="DejaVu Sans, sans-serif" font-size="34" fill="#7aa2f7">TUI music player &#183; YouTube &#183; Radio &#183; Navidrome &#183; local</text>
+
+  <!-- bottom chips -->
+  <g font-family="DejaVu Sans, sans-serif" font-size="26" fill="#9ece6a">
+    <rect x="604" y="300" width="160" height="44" rx="22" fill="#9ece6a22" stroke="#9ece6a" stroke-width="2"/>
+    <text x="636" y="330">mpv</text>
+    <rect x="784" y="300" width="220" height="44" rx="22" fill="#e0af6822" stroke="#e0af68" stroke-width="2"/>
+    <text x="804" y="330">yt-dlp</text>
+    <rect x="1024" y="300" width="150" height="44" rx="22" fill="#bb9af722" stroke="#bb9af7" stroke-width="2"/>
+    <text x="1052" y="330">themes</text>
+  </g>
+</svg>

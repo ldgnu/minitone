@@ -460,6 +460,27 @@ func (p *Player) Playing() bool {
 	return p.status.State == StatePlaying
 }
 
+// SetPreview sets a static status used only for rendering screenshots/previews.
+func (p *Player) SetPreview(title, artist, album, source string, elapsed, duration float64, vol int) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.status = Status{
+		State:    StatePlaying,
+		Song:     SongInfo{Title: title, Artist: artist, Album: album, Source: source},
+		Elapsed:  elapsed,
+		Duration: duration,
+		Volume:   vol,
+	}
+}
+
+// SetVideoPreview marks a video as playing (used for screenshot previews).
+func (p *Player) SetVideoPreview(title string) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.videoPlaying = true
+	p.videoTitle = title
+}
+
 func (p *Player) Close() {
 	p.mu.Lock()
 	if p.closed {

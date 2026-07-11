@@ -1,8 +1,24 @@
 # minitone ♪
 
+<p align="center">
+  <img src="assets/banner.png" alt="minitone banner" width="720"/>
+</p>
+
+<p align="center">
+  <a href="https://github.com/ldgnu/minitone/releases/tag/v0.2.4"><img src="https://img.shields.io/badge/version-0.2.4-blue?style=flat-square" alt="version"/></a>
+  <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="license"/>
+  <a href="https://aur.archlinux.org/packages/minitone"><img src="https://img.shields.io/aur/version/minitone?style=flat-square&logo=archlinux" alt="AUR"/></a>
+  <img src="https://img.shields.io/badge/platforms-linux%20%2F%20macOS-lightgrey?style=flat-square" alt="platforms"/>
+  <img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"/>
+</p>
+
 TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, and **favorites**.
 
 by [ldgnu](https://github.com/ldgnu)
+
+<p align="center">
+  <img src="assets/demo.gif" alt="minitone demo" width="640"/>
+</p>
 
 ## Requirements
 
@@ -12,6 +28,14 @@ by [ldgnu](https://github.com/ldgnu)
 - **Go 1.22+** if building from source
 
 ## Install
+
+### One-liner (Linux / macOS)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ldgnu/minitone/master/scripts/install.sh | sh
+```
+
+Downloads the latest prebuilt binary for your OS/arch into `/usr/local/bin` (or `~/.local/bin`). Pin a version with `MINITONE_VERSION=0.2.4 curl … | sh`.
 
 ### Arch Linux (AUR)
 
@@ -143,6 +167,21 @@ Type to search. Results are grouped by source. **enter** plays and queues.
 ### Themes
 
 `terminal`, `fallout`, `tokyonight`, `everforest`, `catppuccin`, `gruvbox`, `nord`, `kanagawa`, `dracula`, `monochrome`, `amber`
+
+## Screenshots
+
+<p align="center">
+  <img src="assets/screenshot-welcome.png" width="400" alt="welcome"/>
+  <img src="assets/screenshot-search.png" width="400" alt="search"/>
+</p>
+<p align="center">
+  <img src="assets/screenshot-playing.png" width="400" alt="now playing"/>
+  <img src="assets/screenshot-queue.png" width="400" alt="queue"/>
+</p>
+<p align="center">
+  <img src="assets/screenshot-favorites.png" width="400" alt="favorites"/>
+  <img src="assets/screenshot-video.png" width="400" alt="video mode"/>
+</p>
 
 ## Develop
 
