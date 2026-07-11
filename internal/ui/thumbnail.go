@@ -82,10 +82,16 @@ func (m Model) renderThumbPanel(w, h int) string {
 	b.WriteString(m.styles.Title.Render(" Preview"))
 	b.WriteString("\n")
 
-	if m.thumbURL == "" {
+	url := m.thumbURL
+	if url == "" {
+		if s := m.selectedSong(); s != nil {
+			url = s.Thumbnail
+		}
+	}
+	if url == "" {
 		return m.styles.Panel.Width(w).Height(h).Render(b.String())
 	}
-	img, ok := m.thumbs[m.thumbURL]
+	img, ok := m.thumbs[url]
 	if !ok {
 		b.WriteString(m.styles.Dimmed.Render(" loading…"))
 		return m.styles.Panel.Width(w).Height(h).Render(b.String())

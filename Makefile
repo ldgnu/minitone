@@ -1,5 +1,5 @@
 APP       := minitone
-VERSION   := 0.2.0
+VERSION   := 0.2.5
 PREFIX    := /usr
 BINDIR    := $(PREFIX)/bin
 GOFLAGS   := -trimpath
