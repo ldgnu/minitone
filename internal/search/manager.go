@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -13,18 +14,171 @@ import (
 const defaultLimit = 10
 const searchTimeout = 12 * time.Second
 
+// Debounce bounds (milliseconds).
+const (
+	defaultDebounceMs = 300
+	minDebounceMs     = 100
+	maxDebounceMs     = 800
+)
+
+// Source names in display order.
+const (
+	SourceYouTube   = "YouTube"
+	SourceRadio     = "Radio"
+	SourceNavidrome = "Navidrome"
+	SourceLibrary   = "Library"
+	SourceFavorites = "Favorites"
+)
+
+var sourceOrder = []string{
+	SourceYouTube,
+	SourceRadio,
+	SourceNavidrome,
+	SourceLibrary,
+	SourceFavorites,
+}
+
+// Event is a single incremental search update.
+//
+// Results are emitted per source as they arrive instead of waiting for every
+// source to finish, so a slow (or dead) source never blocks the others.
+type Event struct {
+	// Query the event belongs to.
+	Query string
+	// Source that produced the event ("" for a "started" event).
+	Source string
+	// Songs for this source, ranked. Nil on error/start/finish.
+	Songs []models.Song
+	// Err is set when this source failed.
+	Err error
+	// Started is true for the very first event of a query.
+	Started bool
+	// Done is true once this source finished (with or without results).
+	Done bool
+}
+
+// SourceError is a per-source failure the UI can offer to retry.
+type SourceError struct {
+	Source string
+	Err    error
+}
+
+func (e SourceError) Error() string {
+	if e.Err == nil {
+		return e.Source
+	}
+	return e.Source + ": " + e.Err.Error()
+}
+
+// Manager fans a query out to every registered searcher and streams results
+// back through OnEvent.
 type Manager struct {
 	searchers []Searcher
 	debouncer *utils.Debouncer
 	mu        sync.Mutex
 	cancel    context.CancelFunc
-	onResult  func(models.SearchResults)
+	onEvent   func(Event)
+
+	// only, when non-empty, restricts the query to these source names.
+	only map[string]bool
+	// limit is the per-source result cap.
+	limit int
 }
 
 func NewManager() *Manager {
 	return &Manager{
-		debouncer: utils.NewDebouncer(180 * time.Millisecond),
+		debouncer: utils.NewDebouncer(300 * time.Millisecond),
+		limit:     defaultLimit,
+		only:      nil,
 	}
+}
+
+// SetDebounce configures the keystroke debounce (clamped to 100..800ms).
+func (m *Manager) SetDebounce(ms int) {
+	switch {
+	case ms <= 0:
+		ms = defaultDebounceMs
+	case ms < minDebounceMs:
+		ms = minDebounceMs
+	case ms > maxDebounceMs:
+		ms = maxDebounceMs
+	}
+	m.debouncer.SetDelay(time.Duration(ms) * time.Millisecond)
+}
+
+// SetLimit changes how many results each source returns (0 resets to default).
+func (m *Manager) SetLimit(n int) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if n <= 0 {
+		n = defaultLimit
+	}
+	m.limit = n
+}
+
+// sourceAliases maps the friendly names users type or configure to the
+// canonical source name. Without this, "local" (the prefix, and the obvious
+// config value) would silently match nothing.
+var sourceAliases = map[string]string{
+	"all": "", "any": "", "search": "",
+	"youtube": SourceYouTube, "yt": SourceYouTube,
+	"radio": SourceRadio, "radiobrowser": SourceRadio, "browser": SourceRadio,
+	"navidrome": SourceNavidrome, "nav": SourceNavidrome, "subsonic": SourceNavidrome,
+	"library": SourceLibrary, "local": SourceLibrary, "lib": SourceLibrary,
+	"favorites": SourceFavorites, "favourites": SourceFavorites, "fav": SourceFavorites,
+}
+
+// CanonicalSource resolves a user-facing name (case-insensitive) to a source
+// name, and reports whether it matched. "all"/"" mean "no restriction".
+func CanonicalSource(name string) (string, bool) {
+	key := strings.ToLower(strings.TrimSpace(name))
+	if key == "" {
+		return "", true // an empty name means "no restriction"
+	}
+	if canonical, ok := sourceAliases[key]; ok {
+		return canonical, true
+	}
+	for _, s := range sourceOrder {
+		if strings.ToLower(s) == key {
+			return s, true
+		}
+	}
+	return "", false
+}
+
+// RestrictTo limits searches to the given source names (empty, "all" or an
+// unknown name means every source).
+func (m *Manager) RestrictTo(names []string) {
+	if len(names) == 0 {
+		m.mu.Lock()
+		m.only = nil
+		m.mu.Unlock()
+		return
+	}
+	set := make(map[string]bool, len(names))
+	unknown := false
+	for _, n := range names {
+		canonical, ok := CanonicalSource(n)
+		switch {
+		case !ok:
+			unknown = true // do not silently search nothing
+		case canonical == "":
+			// "all" / "" → no restriction at all.
+			set = nil
+			m.mu.Lock()
+			m.only = nil
+			m.mu.Unlock()
+			return
+		default:
+			set[strings.ToLower(canonical)] = true
+		}
+	}
+	if unknown && len(set) == 0 {
+		set = nil
+	}
+	m.mu.Lock()
+	m.only = set
+	m.mu.Unlock()
 }
 
 func (m *Manager) AddSearcher(s Searcher) {
@@ -33,17 +187,20 @@ func (m *Manager) AddSearcher(s Searcher) {
 	m.searchers = append(m.searchers, s)
 }
 
-func (m *Manager) OnResult(fn func(models.SearchResults)) {
+// OnEvent registers the streaming update callback (replaces the old
+// single-shot OnResult).
+func (m *Manager) OnEvent(fn func(Event)) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.onResult = fn
+	m.onEvent = fn
 }
 
+// Search schedules a debounced search for query.
 func (m *Manager) Search(query string) {
-	query = trimSpace(query)
+	query = strings.TrimSpace(query)
 	if query == "" {
 		m.Cancel()
-		m.emit(models.SearchResults{})
+		m.emit(Event{Done: true})
 		return
 	}
 
@@ -52,110 +209,121 @@ func (m *Manager) Search(query string) {
 	})
 }
 
+// SearchNow runs a search immediately, skipping the debounce.
+func (m *Manager) SearchNow(query string) {
+	m.debouncer.Cancel()
+	query = strings.TrimSpace(query)
+	if query == "" {
+		m.Cancel()
+		m.emit(Event{Done: true})
+		return
+	}
+	m.doSearch(query)
+}
+
+// doSearch fans out to every target source. It never blocks the caller: the
+// fan-out runs in its own goroutine and reports through emit as sources finish.
 func (m *Manager) doSearch(query string) {
 	m.mu.Lock()
 	if m.cancel != nil {
+		// A newer query supersedes this one: the old context is cancelled so
+		// its results are dropped by the generation check below.
 		m.cancel()
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), searchTimeout)
 	m.cancel = cancel
-	searchers := append([]Searcher{}, m.searchers...)
+
+	type target struct {
+		name string
+		fn   Searcher
+	}
+	var targets []target
+	for _, s := range m.searchers {
+		if m.only != nil && !m.only[strings.ToLower(s.Name())] {
+			continue
+		}
+		targets = append(targets, target{name: s.Name(), fn: s})
+	}
+	limit := m.limit
+	if limit <= 0 {
+		limit = defaultLimit
+	}
+	onEvent := m.onEvent
 	m.mu.Unlock()
 
-	var mu sync.Mutex
-	results := make(map[string][]models.Song)
-	var wg sync.WaitGroup
-
-	for _, s := range searchers {
-		wg.Add(1)
-		go func(searcher Searcher) {
-			defer wg.Done()
-			if ctx.Err() != nil {
-				return
-			}
-
-			songs, err := searcher.Search(ctx, query, defaultLimit)
-			if err != nil || len(songs) == 0 {
-				return
-			}
-
-			for i := range songs {
-				// Score by title + artist for better ranking.
-				titleScore := FuzzyFind(query, songs[i].Title).Score
-				artistScore := FuzzyFind(query, songs[i].Artist).Score
-				if artistScore > titleScore {
-					songs[i].Score = artistScore
-				} else {
-					songs[i].Score = titleScore
-				}
-				// Exact substring boost.
-				if containsFold(songs[i].Title, query) {
-					songs[i].Score += 0.5
-				}
-			}
-			sort.Slice(songs, func(i, j int) bool {
-				return songs[i].Score > songs[j].Score
-			})
-
-			mu.Lock()
-			results[searcher.Name()] = songs
-			mu.Unlock()
-		}(s)
+	emit := func(ev Event) {
+		if onEvent != nil {
+			onEvent(ev)
+		}
 	}
 
-	wg.Wait()
-
-	// Drop results if a newer search superseded this one.
-	if ctx.Err() == context.Canceled {
+	if len(targets) == 0 {
+		emit(Event{Query: query, Started: true, Done: true})
 		return
 	}
 
-	groups := make([]models.SearchResultGroup, 0, len(results))
-	total := 0
-	sourceOrder := []string{"YouTube", "Radio", "Navidrome", "Library", "Favorites"}
-	for _, name := range sourceOrder {
-		songs, ok := results[name]
-		if !ok {
-			continue
-		}
-		var source models.SourceType
-		switch name {
-		case "YouTube":
-			source = models.SourceYouTube
-		case "Radio":
-			source = models.SourceRadio
-		case "Navidrome":
-			source = models.SourceNavidrome
-		case "Library":
-			source = models.SourceLocal
-		case "Favorites":
-			// Keep original source on each song; group label is Favorites.
-			if len(songs) > 0 {
-				source = songs[0].Source
-			}
-		}
-		groups = append(groups, models.SearchResultGroup{
-			Source: source,
-			Name:   name,
-			Items:  songs,
-			Index:  len(groups),
-		})
-		total += len(songs)
-	}
+	emit(Event{Query: query, Started: true})
 
-	m.emit(models.SearchResults{
-		Query:  query,
-		Groups: groups,
-		Total:  total,
-	})
+	go func() {
+		var wg sync.WaitGroup
+		for _, t := range targets {
+			wg.Add(1)
+			go func(t target) {
+				defer wg.Done()
+				if ctx.Err() != nil {
+					return
+				}
+
+				songs, err := t.fn.Search(ctx, query, limit)
+
+				// A cancelled/expired context means this result belongs to an
+				// outdated query (or one already past its deadline) and must
+				// not overwrite fresher results.
+				if ctx.Err() != nil {
+					return
+				}
+
+				switch {
+				case err != nil:
+					emit(Event{Query: query, Source: t.name, Err: err, Done: true})
+				case len(songs) == 0:
+					emit(Event{Query: query, Source: t.name, Done: true})
+				default:
+					emit(Event{Query: query, Source: t.name, Songs: rank(query, songs), Done: true})
+				}
+			}(t)
+		}
+		wg.Wait()
+		cancel()
+	}()
 }
 
-func (m *Manager) emit(results models.SearchResults) {
+// rank sorts songs by fuzzy score (title vs artist, with a substring boost).
+func rank(query string, songs []models.Song) []models.Song {
+	for i := range songs {
+		titleScore := FuzzyFind(query, songs[i].Title).Score
+		artistScore := FuzzyFind(query, songs[i].Artist).Score
+		if artistScore > titleScore {
+			songs[i].Score = artistScore
+		} else {
+			songs[i].Score = titleScore
+		}
+		if strings.Contains(strings.ToLower(songs[i].Title), strings.ToLower(query)) {
+			songs[i].Score += 0.5
+		}
+	}
+	sort.SliceStable(songs, func(i, j int) bool {
+		return songs[i].Score > songs[j].Score
+	})
+	return songs
+}
+
+func (m *Manager) emit(ev Event) {
 	m.mu.Lock()
-	fn := m.onResult
+	fn := m.onEvent
 	m.mu.Unlock()
 	if fn != nil {
-		fn(results)
+		fn(ev)
 	}
 }
 
@@ -169,51 +337,57 @@ func (m *Manager) Cancel() {
 	m.mu.Unlock()
 }
 
-func trimSpace(s string) string {
-	start, end := 0, len(s)
-	for start < end && (s[start] == ' ' || s[start] == '\t') {
-		start++
-	}
-	for end > start && (s[end-1] == ' ' || s[end-1] == '\t') {
-		end--
-	}
-	return s[start:end]
+// SourceOrder returns the canonical display order of source names.
+func SourceOrder() []string {
+	return append([]string{}, sourceOrder...)
 }
 
-func containsFold(s, sub string) bool {
-	if sub == "" {
-		return true
+// BuildGroups assembles per-source songs into ordered result groups,
+// preserving the canonical source order and skipping empty sources.
+func BuildGroups(bySource map[string][]models.Song) []models.SearchResultGroup {
+	groups := make([]models.SearchResultGroup, 0, len(bySource))
+	total := 0
+	for _, name := range sourceOrder {
+		songs, ok := bySource[name]
+		if !ok || len(songs) == 0 {
+			continue
+		}
+		groups = append(groups, models.SearchResultGroup{
+			Source: SourceTypeFor(name),
+			Name:   name,
+			Items:  songs,
+			Index:  len(groups),
+		})
+		total += len(songs)
 	}
-	return len(s) >= len(sub) && (FuzzyFind(sub, s).Score > 0 || indexFold(s, sub) >= 0)
+	return groups
 }
 
-func indexFold(s, sub string) int {
-	// Simple ASCII-ish fold contains for boost; fuzzy already covers unicode-ish.
-	ls, lsub := make([]rune, 0, len(s)), make([]rune, 0, len(sub))
-	for _, r := range s {
-		if r >= 'A' && r <= 'Z' {
-			r += 'a' - 'A'
-		}
-		ls = append(ls, r)
+// CountTotal returns the number of songs across groups.
+func CountTotal(groups []models.SearchResultGroup) int {
+	n := 0
+	for _, g := range groups {
+		n += len(g.Items)
 	}
-	for _, r := range sub {
-		if r >= 'A' && r <= 'Z' {
-			r += 'a' - 'A'
-		}
-		lsub = append(lsub, r)
+	return n
+}
+
+// SourceTypeFor maps a source display name to the model type.
+func SourceTypeFor(name string) models.SourceType {
+	switch name {
+	case SourceYouTube:
+		return models.SourceYouTube
+	case SourceRadio:
+		return models.SourceRadio
+	case SourceNavidrome:
+		return models.SourceNavidrome
+	case SourceLibrary:
+		return models.SourceLocal
+	case SourceFavorites:
+		// Favorites keep the original source on each song; the group is just
+		// a view over them.
+		return models.SourceLocal
+	default:
+		return models.SourceType(name)
 	}
-	// naive search
-	for i := 0; i+len(lsub) <= len(ls); i++ {
-		match := true
-		for j := 0; j < len(lsub); j++ {
-			if ls[i+j] != lsub[j] {
-				match = false
-				break
-			}
-		}
-		if match {
-			return i
-		}
-	}
-	return -1
 }

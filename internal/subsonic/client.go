@@ -1,6 +1,7 @@
 package subsonic
 
 import (
+	"context"
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
@@ -45,6 +46,12 @@ func NewClient(serverURL, user, pass string) *Client {
 }
 
 func (c *Client) get(endpoint string, params map[string]string) (map[string]any, error) {
+	return c.getContext(context.Background(), endpoint, params)
+}
+
+// getContext is get with cancellation, so a superseded search stops hitting
+// the server immediately instead of waiting for the client timeout.
+func (c *Client) getContext(ctx context.Context, endpoint string, params map[string]string) (map[string]any, error) {
 	u, _ := url.Parse(c.baseURL + "/" + endpoint + ".view")
 	q := u.Query()
 	q.Set("u", c.user)
@@ -57,7 +64,12 @@ func (c *Client) get(endpoint string, params map[string]string) (map[string]any,
 		q.Set(k, v)
 	}
 	u.RawQuery = q.Encode()
-	resp, err := c.http.Get(u.String())
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, fmt.Errorf("bad request: %w", err)
+	}
+	resp, err := c.http.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("connection failed: %w", err)
 	}
@@ -88,6 +100,17 @@ func (c *Client) get(endpoint string, params map[string]string) (map[string]any,
 func (c *Client) Ping() error {
 	_, err := c.get("ping", nil)
 	return err
+}
+
+// PingContext is Ping with a caller-supplied deadline.
+func (c *Client) PingContext(ctx context.Context) error {
+	_, err := c.getContext(ctx, "ping", nil)
+	return err
+}
+
+// GetContext is the cancellable variant of get, used by searches.
+func (c *Client) GetContext(ctx context.Context, endpoint string, params map[string]string) (map[string]any, error) {
+	return c.getContext(ctx, endpoint, params)
 }
 
 func (c *Client) StreamURL(id string) string {

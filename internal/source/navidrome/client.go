@@ -1,6 +1,7 @@
 package navidrome
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ldgnu/minitone/internal/models"
@@ -16,7 +17,16 @@ func New(api *subsonic.Client) *Client {
 }
 
 func (c *Client) Search(query string, limit int) ([]models.Song, error) {
-	songs, err := c.api.Search(query, limit)
+	return c.SearchContext(context.Background(), query, limit)
+}
+
+// SearchContext is Search with cancellation, so a superseded query stops
+// hitting the server immediately.
+func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]models.Song, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	songs, err := c.api.SearchContext(ctx, query, limit)
 	if err != nil {
 		return nil, fmt.Errorf("navidrome search: %w", err)
 	}

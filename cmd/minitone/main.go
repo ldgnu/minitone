@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/ldgnu/minitone/internal/app"
 	"github.com/ldgnu/minitone/internal/ui"
@@ -18,10 +20,15 @@ func main() {
 		case "--screenshot":
 			// --screenshot <scenario> [w] [h] [theme]
 			scenario := "welcome"
-			w, h := 100, 30
+			w, h := 100, 28
 			theme := "tokyonight"
 			if len(os.Args) > 2 {
 				scenario = os.Args[2]
+			}
+			if !slices.Contains(ui.Scenarios, scenario) {
+				fmt.Fprintf(os.Stderr, "minitone: unknown scenario %q\nknown: %s\n",
+					scenario, strings.Join(ui.Scenarios, ", "))
+				os.Exit(2)
 			}
 			if len(os.Args) > 3 {
 				if v, err := strconv.Atoi(os.Args[3]); err == nil {
@@ -38,6 +45,11 @@ func main() {
 			}
 			fmt.Print(ui.Screenshot(scenario, w, h, theme))
 			return
+		case "--list-screenshots":
+			for _, s := range ui.Scenarios {
+				fmt.Println(s)
+			}
+			return
 		case "-h", "--help", "help":
 			fmt.Print(`minitone — TUI music player
 
@@ -52,11 +64,18 @@ Config: ~/.config/minitone/config.json
 Data:   ~/.config/minitone/favorites.json
         ~/.config/minitone/history.json
 
-Keys (search empty):
-  type to search · enter play · f favorite · ctrl+h history
-  ctrl+f favorites · ctrl+j queue · ctrl+v video · space pause
-  ctrl+t theme · ctrl+s stop · ? help · q quit
-  esc back · ctrl+c quit
+Two focus modes:
+  search  type to search · tab/enter browse results · esc clear
+  browse  j k move · enter play · a queue · A queue all · f favorite
+          i details · d remove · c clear · J K move in queue
+          n/p next/prev · s stop · space pause · esc back to search
+
+Anywhere:
+  ctrl+j queue · ctrl+f favorites · ctrl+h history · ctrl+l library
+  ctrl+s rescan library · ctrl+t theme · ctrl+v video · ctrl+r repeat
+  ctrl+u shuffle · ctrl+/ help · q quit · ctrl+c always quits
+
+Search prefixes:  /search /youtube /radio /navidrome /local /fav  + term
 
 Requires: mpv, yt-dlp (for YouTube)
 `)

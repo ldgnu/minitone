@@ -25,6 +25,20 @@ type Song struct {
 	Score     float64    `json:"-"`
 	Genre     string     `json:"genre,omitempty"`
 	Year      int        `json:"year,omitempty"`
+
+	// AddedAt is when the file was added/modified on disk (unix seconds).
+	// Only local library songs set it; it powers "recently added".
+	AddedAt int64 `json:"added_at,omitempty"`
+	// Size is the file size in bytes (local files only).
+	Size int64 `json:"size,omitempty"`
+}
+
+// Missing reports whether the song has no way to be played at all.
+func (s Song) Missing() bool {
+	if s.FilePath != "" {
+		return false // caller should stat the file
+	}
+	return s.URL == "" && s.SourceID == "" && s.ID == ""
 }
 
 func (s Song) DisplayTitle() string {

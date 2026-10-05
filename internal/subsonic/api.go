@@ -1,6 +1,7 @@
 package subsonic
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 )
@@ -97,18 +98,27 @@ func (c *Client) GetPlaylist(id string) ([]Song, error) {
 }
 
 func (c *Client) Search(query string, count int) ([]Song, error) {
+	return c.SearchContext(context.Background(), query, count)
+}
+
+// SearchContext is Search with cancellation, so a superseded query does not
+// keep hitting the server (and the fallback) after the user moved on.
+func (c *Client) SearchContext(ctx context.Context, query string, count int) ([]Song, error) {
 	if count <= 0 {
 		count = 20
 	}
 	// Prefer search3 (OpenSubsonic / modern Navidrome), fall back to search2.
-	sr, err := c.get("search3", map[string]string{
-		"query":        query,
-		"songCount":    strconv.Itoa(count),
-		"artistCount":  "0",
-		"albumCount":   "0",
+	sr, err := c.getContext(ctx, "search3", map[string]string{
+		"query":       query,
+		"songCount":   strconv.Itoa(count),
+		"artistCount": "0",
+		"albumCount":  "0",
 	})
 	if err != nil {
-		sr, err = c.get("search2", map[string]string{
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		sr, err = c.getContext(ctx, "search2", map[string]string{
 			"query":       query,
 			"songCount":   strconv.Itoa(count),
 			"artistCount": "0",

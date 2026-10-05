@@ -44,4 +44,3 @@ func ThemeIndex(name string) int {
 	}
 	return 0
 }
-
