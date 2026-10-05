@@ -110,17 +110,20 @@ func stationsToSongs(stations []Station) []models.Song {
 		if len(tags) > 0 {
 			genre = strings.TrimSpace(tags[0])
 		}
+		// Radio Browser is a public, community-editable database: every field
+		// below is attacker-influenced. Sanitize before it can reach the
+		// terminal (OSC sequences) or mpv (arbitrary URL).
 		songs = append(songs, models.Song{
-			ID:        "radio:" + s.ID,
+			ID:        "radio:" + models.Sanitize(s.ID),
 			Source:    models.SourceRadio,
-			SourceID:  s.ID,
-			Title:     s.Name,
-			Artist:    s.Country,
-			URL:       stream,
+			SourceID:  models.Sanitize(s.ID),
+			Title:     models.Sanitize(s.Name),
+			Artist:    models.Sanitize(s.Country),
+			URL:       models.Sanitize(stream),
 			Bitrate:   s.Bitrate,
-			Format:    s.Codec,
-			Genre:     genre,
-			Thumbnail: s.Favicon,
+			Format:    models.Sanitize(s.Codec),
+			Genre:     models.Sanitize(genre),
+			Thumbnail: models.Sanitize(s.Favicon),
 		})
 	}
 	return songs

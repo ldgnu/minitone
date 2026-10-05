@@ -34,12 +34,12 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 	result := make([]models.Song, 0, len(songs))
 	for _, s := range songs {
 		result = append(result, models.Song{
-			ID:       "nav:" + s.ID,
+			ID:       "nav:" + models.Sanitize(s.ID),
 			Source:   models.SourceNavidrome,
-			SourceID: s.ID,
-			Title:    s.Title,
-			Artist:   s.Artist,
-			Album:    s.Album,
+			SourceID: models.Sanitize(s.ID),
+			Title:    models.Sanitize(s.Title),
+			Artist:   models.Sanitize(s.Artist),
+			Album:    models.Sanitize(s.Album),
 			Duration: s.Duration,
 		})
 	}
@@ -99,12 +99,12 @@ func (c *Client) GetAlbum(id string) ([]models.Song, error) {
 	result := make([]models.Song, 0, len(songs))
 	for _, s := range songs {
 		result = append(result, models.Song{
-			ID:       "nav:" + s.ID,
+			ID:       "nav:" + models.Sanitize(s.ID),
 			Source:   models.SourceNavidrome,
-			SourceID: s.ID,
-			Title:    s.Title,
-			Artist:   s.Artist,
-			Album:    s.Album,
+			SourceID: models.Sanitize(s.ID),
+			Title:    models.Sanitize(s.Title),
+			Artist:   models.Sanitize(s.Artist),
+			Album:    models.Sanitize(s.Album),
 			Duration: s.Duration,
 		})
 	}

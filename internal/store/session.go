@@ -29,6 +29,20 @@ type Session struct {
 	SavedAt time.Time `json:"saved_at"`
 }
 
+// SanitizeSession cleans remote-derived text before it is written to disk, so
+// a poisoned title cannot sit waiting to be rendered later.
+func (s Session) SanitizeSession() Session {
+	s.Song = s.Song.Sanitized()
+	if len(s.Queue) > 0 {
+		q := make([]models.Song, len(s.Queue))
+		for i, song := range s.Queue {
+			q[i] = song.Sanitized()
+		}
+		s.Queue = q
+	}
+	return s
+}
+
 // Empty reports whether the session holds nothing worth restoring.
 func (s Session) Empty() bool {
 	return len(s.Queue) == 0 && !s.HasSong()
@@ -53,7 +67,8 @@ func NewSessionStore(path string) *SessionStore {
 		if data, err := os.ReadFile(path); err == nil {
 			var cur Session
 			if json.Unmarshal(data, &cur) == nil {
-				s.current = cur
+				// Local state may have been edited; clean it before use.
+				s.current = cur.SanitizeSession()
 			}
 		}
 	}
@@ -81,6 +96,7 @@ func (s *SessionStore) Save(sess Session) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	sess = sess.SanitizeSession()
 	sess.SavedAt = time.Now()
 	s.current = sess
 	if s.path == "" {

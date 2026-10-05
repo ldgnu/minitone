@@ -59,6 +59,10 @@ func (f *Favorites) Load() error {
 	if err := json.Unmarshal(data, &items); err != nil {
 		return err
 	}
+	for i := range items {
+		items[i].Song = items[i].Song.Sanitized()
+	}
+
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	f.items = items

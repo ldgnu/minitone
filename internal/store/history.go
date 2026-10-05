@@ -62,6 +62,10 @@ func (h *History) Load() error {
 	if err := json.Unmarshal(data, &items); err != nil {
 		return err
 	}
+	for i := range items {
+		items[i].Song = items[i].Song.Sanitized()
+	}
+
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.items = items

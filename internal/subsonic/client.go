@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -71,7 +72,11 @@ func (c *Client) getContext(ctx context.Context, endpoint string, params map[str
 	}
 	resp, err := c.http.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("connection failed: %w", err)
+		// Never surface the raw error: *url.Error embeds the full request URL,
+		// and ours carries the auth token and the username in the query
+		// string. minitone prints these errors to the terminal, so they would
+		// end up in the scrollback, in screenshots and in bug reports.
+		return nil, connectionError(err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
@@ -95,6 +100,49 @@ func (c *Client) getContext(ctx context.Context, endpoint string, params map[str
 		return nil, fmt.Errorf("API error: unknown")
 	}
 	return sr, nil
+}
+
+// connectionError turns a transport error into a message that is safe to show.
+//
+// net/http wraps failures in *url.Error, whose Error() includes the full
+// request URL. For the Subsonic API that URL carries u=<user>, t=<token> and
+// s=<salt>, so printing it verbatim leaks the credentials into the terminal
+// (and from there into scrollback, screenshots and bug reports).
+func connectionError(err error) error {
+	var uerr *url.Error
+	if errors.As(err, &uerr) && uerr.Err != nil {
+		// Keep the cause ("dial tcp …: connection refused"), which is the part
+		// that actually helps the user. Drop Op and URL.
+		return fmt.Errorf("connection to the server failed: %s",
+			scrubURLCause(uerr.Err.Error()))
+	}
+	// Unknown error shape: scrub anything that looks like a credential.
+	return fmt.Errorf("connection to the server failed: %s", scrubURLCause(err.Error()))
+}
+
+// secretParams are the Subsonic/Navidrome auth parameters that must never be
+// printed.
+var secretParams = []string{"u=", "t=", "s=", "p=", "encpw=", "apiKey="}
+
+// scrubURLCause removes credential-looking parameters from a string.
+func scrubURLCause(s string) string {
+	for _, p := range secretParams {
+		for {
+			i := strings.Index(s, p)
+			if i < 0 {
+				break
+			}
+			// Cut from the parameter up to the next separator.
+			end := len(s)
+			for _, sep := range []string{"&", " ", "\"", "'", ",", ";"} {
+				if j := strings.Index(s[i:], sep); j >= 0 && i+j < end {
+					end = i + j
+				}
+			}
+			s = s[:i] + "<redacted>" + s[end:]
+		}
+	}
+	return s
 }
 
 func (c *Client) Ping() error {

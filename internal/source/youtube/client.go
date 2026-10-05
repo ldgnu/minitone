@@ -95,13 +95,13 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 			url = "https://www.youtube.com/watch?v=" + e.ID
 		}
 		songs = append(songs, models.Song{
-			ID:        "yt:" + e.ID,
+			ID:        "yt:" + models.Sanitize(e.ID),
 			Source:    models.SourceYouTube,
-			SourceID:  e.ID,
-			Title:     e.Title,
-			Artist:    artist,
+			SourceID:  models.Sanitize(e.ID),
+			Title:     models.Sanitize(e.Title),
+			Artist:    models.Sanitize(artist),
 			Duration:  int(e.Duration),
-			URL:       url,
+			URL:       models.Sanitize(url),
 			Thumbnail: ytThumbnail(e.ID),
 		})
 	}
@@ -139,11 +139,11 @@ func (c *Client) searchFallback(ctx context.Context, query string, limit int) ([
 			fmt.Sscanf(strings.TrimSpace(parts[3]), "%d", &dur)
 		}
 		songs = append(songs, models.Song{
-			ID:        "yt:" + id,
+			ID:        "yt:" + models.Sanitize(id),
 			Source:    models.SourceYouTube,
-			SourceID:  id,
-			Title:     strings.TrimSpace(parts[0]),
-			Artist:    artist,
+			SourceID:  models.Sanitize(id),
+			Title:     models.Sanitize(strings.TrimSpace(parts[0])),
+			Artist:    models.Sanitize(artist),
 			Duration:  dur,
 			Thumbnail: ytThumbnail(id),
 			URL:       "https://www.youtube.com/watch?v=" + id,
