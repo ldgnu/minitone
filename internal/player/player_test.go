@@ -26,8 +26,9 @@ func TestNewDefaults(t *testing.T) {
 	if p.Playing() {
 		t.Fatal()
 	}
-	if p.SocketPath() == "" {
-		t.Fatal()
+	// A player that was never started must not have touched the filesystem.
+	if p.socket != "" {
+		t.Fatalf("New() should not create a socket yet, got %q", p.socket)
 	}
 }
 

@@ -11,8 +11,8 @@ import (
 )
 
 type FavEntry struct {
-	Song      models.Song `json:"song"`
-	AddedAt   time.Time   `json:"added_at"`
+	Song    models.Song `json:"song"`
+	AddedAt time.Time   `json:"added_at"`
 }
 
 type Favorites struct {

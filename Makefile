@@ -1,5 +1,5 @@
 APP       := minitone
-VERSION   := 0.2.5
+VERSION   := 0.3.0
 PREFIX    := /usr
 BINDIR    := $(PREFIX)/bin
 GOFLAGS   := -trimpath
@@ -7,8 +7,8 @@ LDFLAGS   := -s -w -X github.com/ldgnu/minitone/internal/app.Version=$(VERSION)
 DIST      := dist
 ARCH      := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
-.PHONY: all build install uninstall test vet clean \
-	package tarball deb aur-srcinfo release help
+.PHONY: all build install uninstall test test-race test-short vet fmt clean \
+	package tarball deb aur-srcinfo release help screenshot
 
 all: build
 
@@ -27,11 +27,17 @@ uninstall:
 test:
 	go test -count=1 ./...
 
+test-race:
+	go test -count=1 -race ./...
+
 test-short:
 	go test -count=1 -short ./...
 
 vet:
 	go vet ./...
+
+fmt:
+	gofmt -w ./cmd ./internal
 
 clean:
 	rm -f $(APP)
@@ -59,5 +65,11 @@ aur-srcinfo:
 release: clean test vet package
 	@ls -lh $(DIST)/
 
+# Render one UI state without touching mpv (welcome search playing queue
+# favorites history library details help video searching error compact narrow)
+screenshot:
+	@test -n "$(SCENARIO)" || { echo "usage: make screenshot SCENARIO=playing [W=100] [H=28] [THEME=tokyonight]"; exit 1; }
+	@go run ./cmd/minitone --screenshot $(SCENARIO) $(or $(W),100) $(or $(H),28) $(or $(THEME),tokyonight)
+
 help:
-	@echo "targets: build install test package tarball deb aur-srcinfo release clean"
+	@echo "targets: build install test test-race test-short vet fmt package tarball deb aur-srcinfo release clean screenshot"

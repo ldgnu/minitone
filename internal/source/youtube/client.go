@@ -19,6 +19,23 @@ func New() *Client {
 	return &Client{timeout: 15 * time.Second}
 }
 
+// Available reports whether yt-dlp is installed (YouTube search/resolve need it).
+func (c *Client) Available() bool { return YtDlpAvailable() }
+
+// UnavailableReason explains, in one short line, why YouTube cannot be used.
+func (c *Client) UnavailableReason() string {
+	if YtDlpAvailable() {
+		return ""
+	}
+	return "yt-dlp not installed"
+}
+
+// YtDlpAvailable reports whether the yt-dlp binary can be found in PATH.
+func YtDlpAvailable() bool {
+	_, err := exec.LookPath("yt-dlp")
+	return err == nil
+}
+
 func (c *Client) Search(query string, limit int) ([]models.Song, error) {
 	return c.SearchContext(context.Background(), query, limit)
 }
@@ -27,8 +44,8 @@ func (c *Client) SearchContext(ctx context.Context, query string, limit int) ([]
 	if limit <= 0 {
 		limit = 10
 	}
-	if _, err := exec.LookPath("yt-dlp"); err != nil {
-		return nil, fmt.Errorf("yt-dlp not found in PATH")
+	if !YtDlpAvailable() {
+		return nil, fmt.Errorf("yt-dlp not found in PATH (install it to search YouTube)")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)
@@ -141,8 +158,8 @@ func (c *Client) Resolve(url string) (string, string, error) {
 }
 
 func (c *Client) ResolveContext(ctx context.Context, url string) (string, string, error) {
-	if _, err := exec.LookPath("yt-dlp"); err != nil {
-		return "", "", fmt.Errorf("yt-dlp not found in PATH")
+	if !YtDlpAvailable() {
+		return "", "", fmt.Errorf("yt-dlp not found in PATH (install it to play from YouTube)")
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, c.timeout)

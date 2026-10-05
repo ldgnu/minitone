@@ -46,7 +46,6 @@ func TestSaveAndLoad(t *testing.T) {
 	t.Setenv("NAVIDROME_USER", "")
 	t.Setenv("NAVIDROME_PASS", "")
 	t.Setenv("MINITONE_THEME", "")
-	t.Setenv("AMUSIC_THEME", "")
 
 	cfg := &Config{
 		Theme:         "dracula",

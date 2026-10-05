@@ -11,15 +11,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ldgnu/minitone/internal/models"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ldgnu/minitone/internal/models"
 )
-
-type thumbMsg struct {
-	url string
-	img image.Image
-	err error
-}
 
 func fetchThumb(url string) tea.Cmd {
 	return func() tea.Msg {
@@ -45,18 +39,6 @@ func fetchThumb(url string) tea.Cmd {
 		}
 		return thumbMsg{url: url, img: img}
 	}
-}
-
-// selectedSong returns the currently highlighted search result, or nil.
-func (m Model) selectedSong() *models.Song {
-	if m.searchGroup < 0 || m.searchGroup >= len(m.searchResults.Groups) {
-		return nil
-	}
-	items := m.searchResults.Groups[m.searchGroup].Items
-	if m.searchCursor < 0 || m.searchCursor >= len(items) {
-		return nil
-	}
-	return &items[m.searchCursor]
 }
 
 // maybeFetchThumb triggers an async thumbnail load for the selected YouTube
@@ -126,7 +108,7 @@ func brailleImage(src image.Image, cols, rows int) string {
 		for rx := 0; rx < cols; rx++ {
 			// map cell -> 2x4 source pixels
 			var dots [4][2]struct {
-				on   bool
+				on      bool
 				r, g, b uint8
 			}
 			var ar, ag, ab, al, an uint32
@@ -192,7 +174,7 @@ func luminance(r, g, b uint8) int {
 
 // brailleCell maps the 2x4 dot grid to a Unicode braille code point.
 func brailleCell(dots [4][2]struct {
-	on          bool
+	on      bool
 	r, g, b uint8
 }) rune {
 	var v rune

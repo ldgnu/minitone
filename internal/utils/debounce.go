@@ -13,7 +13,27 @@ type Debouncer struct {
 }
 
 func NewDebouncer(delay time.Duration) *Debouncer {
+	if delay <= 0 {
+		delay = 300 * time.Millisecond
+	}
 	return &Debouncer{delay: delay}
+}
+
+// SetDelay changes the debounce window for subsequent Reset calls.
+func (d *Debouncer) SetDelay(delay time.Duration) {
+	if delay <= 0 {
+		return
+	}
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.delay = delay
+}
+
+// Delay returns the current debounce window.
+func (d *Debouncer) Delay() time.Duration {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.delay
 }
 
 func (d *Debouncer) Reset(fn func()) {
