@@ -5,14 +5,14 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/ldgnu/minitone/releases/tag/v0.3.0"><img src="https://img.shields.io/badge/version-0.3.0-blue?style=flat-square" alt="version"/></a>
+  <a href="https://github.com/ldgnu/minitone/releases/tag/v0.4.0"><img src="https://img.shields.io/badge/version-0.4.0-blue?style=flat-square" alt="version"/></a>
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="license"/>
   <a href="https://aur.archlinux.org/packages/minitone"><img src="https://img.shields.io/aur/version/minitone?style=flat-square&logo=archlinux" alt="AUR"/></a>
   <img src="https://img.shields.io/badge/platforms-linux%20%2F%20macOS-lightgrey?style=flat-square" alt="platforms"/>
   <img src="https://img.shields.io/badge/go-1.22%2B-00ADD8?style=flat-square&logo=go" alt="go"/>
 </p>
 
- TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, and **favorites**.
+ TUI music player — search and play from **YouTube**, **Radio Browser**, **Navidrome** (Subsonic), your **local library**, **favorites** and **playlists** (taste + weekly discovery via YouTube).
 
  Selected YouTube results show a live **thumbnail preview** (rendered as ANSI/braille art, so it works in any terminal — no graphics protocol needed).
 
@@ -107,6 +107,9 @@ an empty or missing file works.
   "theme": "fallout",
   "volume": 70,
   "library_paths": ["/home/you/Music"],
+  "taste_genres": ["hardcore", "uptempo"],
+  "taste_artists": ["Angerfist", "Miss K8"],
+  "weekly_refresh_days": 7,
   "restore_session": true,
   "default_source": "all",
   "search_debounce_ms": 300,
@@ -120,6 +123,8 @@ an empty or missing file works.
 | `theme` | `terminal` | Any theme name from the list above |
 | `volume` | `70` | 0–100 |
 | `library_paths` | `~/Music` if present | Local library roots |
+| `taste_genres` / `taste_artists` | `["hardcore","uptempo"]` fallback | Your Apple Music reference → seeds Playlists |
+| `weekly_refresh_days` | `7` | Auto-refresh interval for playlists |
 | `restore_session` | `true` | Remember queue, position, volume, shuffle, repeat |
 | `default_source` | `all` | Source to search on startup |
 | `search_debounce_ms` | `300` | Keystroke debounce (100–800) |
@@ -263,6 +268,25 @@ all · `f` favorite · `d` remove · `J K` move (queue) · `c` clear (queue) ·
 close a panel → step out of a library section → clear the query.
 
 `q` quits from Browse and from an empty search box; `ctrl+c` always quits.
+
+### Playlists (taste + weekly discovery)
+
+`ctrl+p` opens your playlists. Each one is a list of YouTube-resolved tracks,
+so playback is instant — no per-track search at play time.
+
+- **Taste profile** (`config.json`): `taste_genres` + `taste_artists` describe
+  what you like (e.g. your Apple Music reference: hardcore, uptempo,
+  Angerfist, Miss K8…). On first run minitone seeds one playlist per
+  genre/artist plus `✨ Novedades semanales`.
+- **Weekly refresh**: auto playlists older than `weekly_refresh_days`
+  (default 7) refill in the background at startup via YouTube search.
+  Inside the panel: `r` refreshes one, `R` refreshes all.
+- **Import a public YouTube playlist**:
+  `minitone --import-playlist <URL> [name]`
+  (private/liked lists need `cookies.txt` in yt-dlp — planned).
+
+Inside playlists: `enter` open/play · `a` enqueue · `A` enqueue all ·
+`f` favorite · `d` remove · `esc` back.
 
 ### Themes
 

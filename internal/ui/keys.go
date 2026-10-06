@@ -38,6 +38,7 @@ const (
 	actFavorites     action = "favorites"
 	actHistory       action = "history"
 	actLibrary       action = "library"
+	actPlaylists     action = "playlists"
 	actHelp          action = "help"
 	actHelpKey       action = "help-key"
 	actRescan        action = "rescan"
@@ -71,6 +72,7 @@ type KeyMap struct {
 	Favorites binding
 	History   binding
 	Library   binding
+	Playlists binding
 	Help      binding
 	HelpKey   binding
 	Quit      binding
@@ -113,6 +115,7 @@ func NewKeyMap() KeyMap {
 		Favorites: binding{"ctrl+f", "favorites"},
 		History:   binding{"ctrl+h", "history"},
 		Library:   binding{"ctrl+l", "library"},
+		Playlists: binding{"ctrl+p", "playlists"},
 		Help:      binding{"ctrl+/", "help"},
 		// "?" is the portable one: ctrl+/ is not reported by every terminal.
 		HelpKey: binding{"?", "help"},
@@ -161,6 +164,7 @@ func (k *KeyMap) Apply(overrides map[string]string) {
 	set(&k.Favorites, "favorites")
 	set(&k.History, "history")
 	set(&k.Library, "library")
+	set(&k.Playlists, "playlists")
 	set(&k.Help, "help")
 	set(&k.HelpKey, "help")
 	set(&k.Theme, "theme")
@@ -200,6 +204,7 @@ func (k KeyMap) resolve(key string) action {
 		{k.Favorites, actFavorites},
 		{k.History, actHistory},
 		{k.Library, actLibrary},
+		{k.Playlists, actPlaylists},
 		{k.Help, actHelp},
 		{k.HelpKey, actHelpKey},
 		{k.Quit, actQuit},
@@ -304,6 +309,14 @@ func (m Model) panelHints() []hint {
 			{k.Delete.key, "remove"},
 			{k.Esc.key, "close"},
 		}
+	case PanelPlaylists:
+		return []hint{
+			{k.Enter.key, "open/play"},
+			{k.Enqueue.key, "enqueue"},
+			{"r", "refresh"},
+			{k.Delete.key, "remove"},
+			{k.Esc.key, "close"},
+		}
 	case PanelLibrary:
 		return []hint{
 			{k.Enter.key, "open"},
@@ -395,6 +408,7 @@ func (m Model) helpRows() []helpRow {
 
 		{"── library ──", ""},
 		{k.Library.key, "browse local library"},
+		{k.Playlists.key, "playlists (taste + weekly)"},
 		{k.Rescan.key, "rescan library"},
 		{k.Favorite.key, "add/remove favorite"},
 		{k.Details.key, "track details"},

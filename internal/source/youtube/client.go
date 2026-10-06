@@ -207,3 +207,69 @@ func ytThumbnail(id string) string {
 	}
 	return "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg"
 }
+
+// FetchPlaylist resolves a public YouTube playlist/mix URL into songs.
+// It uses yt-dlp --flat-playlist so no login is needed for public lists.
+// For private/liked lists pass cookies via yt-dlp config (cookies.txt).
+func (c *Client) FetchPlaylist(url string) ([]models.Song, error) {
+	return c.FetchPlaylistContext(context.Background(), url)
+}
+
+func (c *Client) FetchPlaylistContext(ctx context.Context, url string) ([]models.Song, error) {
+	if !YtDlpAvailable() {
+		return nil, fmt.Errorf("yt-dlp not found in PATH (install it to import playlists)")
+	}
+	ctx, cancel := context.WithTimeout(ctx, 60*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, "yt-dlp",
+		"--flat-playlist",
+		"--dump-single-json",
+		"--no-warnings",
+		url,
+	)
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("yt-dlp playlist: %w", err)
+	}
+	var result struct {
+		Title   string `json:"title"`
+		Entries []struct {
+			Title     string  `json:"title"`
+			ID        string  `json:"id"`
+			Duration  float64 `json:"duration"`
+			Webpage   string  `json:"webpage_url"`
+			URL       string  `json:"url"`
+			Channel   string  `json:"channel"`
+			Uploader  string  `json:"uploader"`
+			Thumbnail string  `json:"thumbnail"`
+		} `json:"entries"`
+	}
+	if err := json.Unmarshal(out, &result); err != nil {
+		return nil, fmt.Errorf("yt-dlp playlist parse: %w", err)
+	}
+	songs := make([]models.Song, 0, len(result.Entries))
+	for _, e := range result.Entries {
+		if e.ID == "" {
+			continue
+		}
+		artist := e.Channel
+		if artist == "" {
+			artist = e.Uploader
+		}
+		page := e.Webpage
+		if page == "" {
+			page = "https://www.youtube.com/watch?v=" + e.ID
+		}
+		songs = append(songs, models.Song{
+			ID:        "yt:" + models.Sanitize(e.ID),
+			Source:    models.SourceYouTube,
+			SourceID:  models.Sanitize(e.ID),
+			Title:     models.Sanitize(e.Title),
+			Artist:    models.Sanitize(artist),
+			Duration:  int(e.Duration),
+			URL:       models.Sanitize(page),
+			Thumbnail: ytThumbnail(e.ID),
+		})
+	}
+	return songs, nil
+}

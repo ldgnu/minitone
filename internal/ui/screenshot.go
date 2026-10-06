@@ -15,7 +15,7 @@ import (
 // (and any manual check) exercise the real View() without touching mpv.
 var Scenarios = []string{
 	"welcome", "search", "playing", "queue", "favorites",
-	"history", "library", "details", "help", "video",
+	"history", "library", "playlists", "details", "help", "video",
 	"searching", "error", "compact", "narrow",
 }
 
@@ -39,8 +39,9 @@ func Screenshot(scenario string, w, h int, theme string) string {
 	q := queue.New()
 	favs := store.NewFavorites("")
 	hist := store.NewHistory("", store.DefaultHistoryMax)
+	playls := store.NewPlaylists("")
 
-	m := New(Deps{Player: p, Queue: q, Favs: favs, History: hist, Theme: theme})
+	m := New(Deps{Player: p, Queue: q, Favs: favs, History: hist, Playlists: playls, Theme: theme})
 	m.width = w
 	m.height = h
 	m.sources = []search.Source{
@@ -166,6 +167,11 @@ func Screenshot(scenario string, w, h int, theme string) string {
 		m.lib.status = "412 tracks · scanned 3/3 folders"
 		m.lib.cursor = 1
 		m.panel = PanelLibrary
+
+	case "playlists":
+		playls.Upsert(store.Playlist{ID: "taste-hardcore", Name: "❤ hardcore", Kind: store.PlaylistTaste, Query: "hardcore", AutoRefresh: true, Tracks: []models.Song{yt("Fuck the System", "Angerfist", 300, 320), yt("Uptempo Anthem", "Miss K8", 280, 320)}})
+		playls.Upsert(store.Playlist{ID: "weekly-new", Name: "✨ Novedades semanales", Kind: store.PlaylistWeekly, Query: "hardcore uptempo new music", AutoRefresh: true, Tracks: []models.Song{yt("New Kick Order", "Rebelion", 240, 320)}})
+		m.panel = PanelPlaylists
 
 	case "details":
 		m.details = yt("lofi hip hop radio 📚 - beats to relax/study to", "Lofi Girl", 0, 0)

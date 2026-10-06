@@ -40,6 +40,15 @@ type Config struct {
 
 	// KeyBindings allows overriding a few actions: {"queue": "ctrl+q"}.
 	KeyBindings map[string]string `json:"keybindings,omitempty"`
+
+	// TasteGenres / TasteArtists describe what you like (taken as reference
+	// from Apple Music): e.g. ["hardcore","uptempo"], ["Angerfist","Miss K8"].
+	// They seed the auto-generated playlists and the weekly discovery mix.
+	TasteGenres  []string `json:"taste_genres,omitempty"`
+	TasteArtists []string `json:"taste_artists,omitempty"`
+
+	// WeeklyRefreshDays controls how often auto playlists refresh (default 7).
+	WeeklyRefreshDays int `json:"weekly_refresh_days,omitempty"`
 }
 
 func configPath() string {
@@ -135,6 +144,9 @@ func (c *Config) normalize() {
 				}
 			}
 		}
+	}
+	if c.WeeklyRefreshDays <= 0 {
+		c.WeeklyRefreshDays = 7
 	}
 }
 

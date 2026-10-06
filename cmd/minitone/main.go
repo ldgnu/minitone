@@ -17,6 +17,14 @@ func main() {
 		case "-v", "--version", "version":
 			fmt.Printf("minitone %s\n", app.Version)
 			return
+		case "--import-playlist":
+			// minitone --import-playlist <youtube-playlist-URL> [name]
+			if len(os.Args) < 3 {
+				fmt.Fprintln(os.Stderr, "usage: minitone --import-playlist <youtube-playlist-URL> [name]")
+				os.Exit(2)
+			}
+			app.ImportPlaylist(os.Args[2], joinArgs(os.Args[3:]))
+			return
 		case "--screenshot":
 			// --screenshot <scenario> [w] [h] [theme]
 			scenario := "welcome"
@@ -56,13 +64,18 @@ func main() {
 Usage:
   minitone              start the player
   minitone --version    print version
+  minitone --import-playlist <youtube-URL> [name]
+                        import a public YouTube playlist into Playlists
   minitone --help       this help
 
-Sources: YouTube, Radio Browser, Navidrome, local library, favorites.
+Sources: YouTube, Radio Browser, Navidrome, local library, favorites, playlists.
 
 Config: ~/.config/minitone/config.json
+          taste_genres: ["hardcore","uptempo"]  (your Apple Music reference)
+          taste_artists: ["Angerfist"]
 Data:   ~/.config/minitone/favorites.json
         ~/.config/minitone/history.json
+        ~/.config/minitone/playlists.json
 
 Two focus modes:
   search  type to search · tab/enter browse results · esc clear
@@ -72,7 +85,7 @@ Two focus modes:
 
 Anywhere:
   ctrl+j queue · ctrl+f favorites · ctrl+h history · ctrl+l library
-  ctrl+s rescan library · ctrl+t theme · ctrl+v video · ctrl+r repeat
+  ctrl+p playlists · ctrl+s rescan library · ctrl+t theme · ctrl+v video · ctrl+r repeat
   ctrl+u shuffle · ctrl+/ help · q quit · ctrl+c always quits
 
 Search prefixes:  /search /youtube /radio /navidrome /local /fav  + term
@@ -88,4 +101,8 @@ Requires: mpv, yt-dlp (for YouTube)
 		fmt.Fprintf(os.Stderr, "minitone: %v\n", err)
 		os.Exit(1)
 	}
+}
+
+func joinArgs(args []string) string {
+	return strings.Join(args, " ")
 }

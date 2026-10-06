@@ -254,6 +254,8 @@ func (m Model) renderBody(h int) string {
 		return m.renderListPanel(m.width, h, "★ Favorites", m.favLines(), m.panelCursor)
 	case PanelHistory:
 		return m.renderListPanel(m.width, h, "◷ History", m.historyLines(), m.panelCursor)
+	case PanelPlaylists:
+		return m.renderPlaylistsPanel(m.width, h)
 	case PanelLibrary:
 		return m.renderLibraryPanel(m.width, h)
 	case PanelDetails:
@@ -446,7 +448,7 @@ func (m Model) renderIdle(w, h int) string {
 		b.WriteString("\n")
 	}
 
-	b.WriteString(m.styles.Dimmed.Render(" ctrl+j queue · ctrl+l library · ctrl+f favorites"))
+	b.WriteString(m.styles.Dimmed.Render(" ctrl+j queue · ctrl+l library · ctrl+f favorites · ctrl+p playlists"))
 	b.WriteString("\n")
 	b.WriteString(m.styles.Dimmed.Render(" ? / ctrl+/   all shortcuts"))
 

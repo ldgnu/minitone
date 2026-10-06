@@ -33,3 +33,11 @@ func HistoryPath() (string, error) {
 	}
 	return filepath.Join(dir, "history.json"), nil
 }
+
+func PlaylistsPath() (string, error) {
+	dir, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "playlists.json"), nil
+}

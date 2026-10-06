@@ -115,6 +115,8 @@ func (m *Model) handleGlobalKey(key string) (handled bool, cmd tea.Cmd, quit boo
 		return true, m.openPanelCmd(PanelHistory), false
 	case actLibrary:
 		return true, m.openPanelCmd(PanelLibrary), false
+	case actPlaylists:
+		return true, m.openPanelCmd(PanelPlaylists), false
 	case actHelp:
 		if m.panel != PanelHelp {
 			m.focusBeforePanel = m.focus
@@ -228,6 +230,13 @@ func (m *Model) openPanelCmd(p Panel) tea.Cmd {
 			m.notice = infoNotice("no favorites yet", "press f on a track to add one", "")
 			return nil
 		}
+	case PanelPlaylists:
+		if m.playls == nil || m.playls.Len() == 0 {
+			m.notice = infoNotice("no playlists yet", "they are created from taste_genres/artists on start", "")
+			return nil
+		}
+		m.plLevel = 0
+		m.plIndex = 0
 	case PanelHistory:
 		if m.hist.Len() == 0 {
 			m.notice = infoNotice("history is empty", "play something first", "")

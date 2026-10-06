@@ -45,6 +45,7 @@ const (
 	PanelFavorites
 	PanelHistory
 	PanelLibrary
+	PanelPlaylists
 	PanelDetails
 	PanelHelp
 )
@@ -59,6 +60,8 @@ func (p Panel) String() string {
 		return "history"
 	case PanelLibrary:
 		return "library"
+	case PanelPlaylists:
+		return "playlists"
 	case PanelDetails:
 		return "details"
 	case PanelHelp:
@@ -190,7 +193,13 @@ type Model struct {
 	sm      SearchRunner
 	favs    *store.Favorites
 	hist    *store.History
+	playls  *store.Playlists
 	session *store.SessionStore
+
+	// plLevel / plIndex drive the two-level playlists browser:
+	// level 0 = playlists, level 1 = tracks of the selected playlist.
+	plLevel int
+	plIndex int
 
 	lastSong models.Song // last resolved/played song (for favorite toggling)
 	details  models.Song // song shown by the details overlay
@@ -267,6 +276,7 @@ type Deps struct {
 	Library  *library.Scanner
 	Favs     *store.Favorites
 	History  *store.History
+	Playlists *store.Playlists
 	Session  *store.SessionStore
 	Theme    string
 	Debounce int
@@ -321,6 +331,9 @@ func New(d Deps) Model {
 	if d.History == nil {
 		d.History = store.NewHistory("", store.DefaultHistoryMax)
 	}
+	if d.Playlists == nil {
+		d.Playlists = store.NewPlaylists("")
+	}
 	if d.Queue == nil {
 		d.Queue = queue.New()
 	}
@@ -331,6 +344,7 @@ func New(d Deps) Model {
 		sm:               d.Search,
 		favs:             d.Favs,
 		hist:             d.History,
+		playls:           d.Playlists,
 		session:          d.Session,
 		search:           newSearchState(),
 		searchCh:         searchEvents,

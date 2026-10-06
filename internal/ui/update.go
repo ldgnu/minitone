@@ -94,6 +94,10 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.saveSession()
 		return m, nil
 
+	case playlistRefreshMsg:
+		m.onPlaylistRefresh(msg)
+		return m, nil
+
 	case error:
 		m.err = msg
 		m.notice = errorNotice("unexpected error", errText(msg), "[esc] dismiss")
@@ -692,6 +696,14 @@ func (m *Model) clampCursors() {
 	if m.panelCursor < 0 {
 		m.panelCursor = 0
 	}
+	if m.panel == PanelPlaylists && m.playls != nil {
+		if m.plIndex >= m.playls.Len() {
+			m.plIndex = 0
+		}
+		if m.plIndex < 0 {
+			m.plIndex = 0
+		}
+	}
 	if m.lib.cursor >= m.lib.len() {
 		m.lib.cursor = 0
 	}
@@ -949,6 +961,17 @@ func (m Model) panelLen() int {
 		return m.favs.Len()
 	case PanelHistory:
 		return m.hist.Len()
+	case PanelPlaylists:
+		if m.plLevel == 1 {
+			if pl := m.currentPlaylist(); pl != nil {
+				return len(pl.Tracks)
+			}
+			return 0
+		}
+		if m.playls != nil {
+			return m.playls.Len()
+		}
+		return 0
 	case PanelLibrary:
 		return m.lib.len()
 	case PanelDetails:

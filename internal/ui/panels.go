@@ -8,6 +8,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/ldgnu/minitone/internal/models"
 	"github.com/ldgnu/minitone/internal/queue"
+	"github.com/ldgnu/minitone/internal/store"
 	"github.com/ldgnu/minitone/internal/utils"
 )
 
@@ -323,6 +324,58 @@ func (m Model) renderHelpPanel(w, h int) string {
 	return b.String()
 }
 
+// ── playlists ───────────────────────────────────────────────────────────────
+
+func (m Model) playlistRows() []listRow {
+	if m.playls == nil {
+		return nil
+	}
+	lists := m.playls.List()
+	out := make([]listRow, 0, len(lists))
+	for _, pl := range lists {
+		meta := fmt.Sprintf("%d tracks", len(pl.Tracks))
+		if pl.AutoRefresh {
+			meta += " · auto"
+		}
+		out = append(out, listRow{title: pl.Name, meta: meta, badge: "  "})
+	}
+	return out
+}
+
+func (m Model) playlistTrackRows() ([]listRow, string) {
+	pl := m.currentPlaylist()
+	if pl == nil {
+		return nil, "Playlists"
+	}
+	out := make([]listRow, 0, len(pl.Tracks))
+	for _, s := range pl.Tracks {
+		out = append(out, listRow{title: s.DisplayTitle(), meta: songMeta(s, m.compact()), badge: "  "})
+	}
+	return out, pl.Name
+}
+
+func (m Model) currentPlaylist() *store.Playlist {
+	if m.playls == nil {
+		return nil
+	}
+	return m.playls.GetAt(m.plIndex)
+}
+
+func (m Model) renderPlaylistsPanel(w, h int) string {
+	if m.plLevel == 1 {
+		rows, name := m.playlistTrackRows()
+		if len(rows) == 0 {
+			return m.renderEmptyPanel(w, h, name, "empty — press r to refresh from YouTube")
+		}
+		return m.renderListPanel(w, h, " "+name+fmt.Sprintf(" · %d", len(rows)), rows, m.panelCursor)
+	}
+	rows := m.playlistRows()
+	if len(rows) == 0 {
+		return m.renderEmptyPanel(w, h, "Playlists", "no playlists — set taste_genres/artists in config.json")
+	}
+	return m.renderListPanel(w, h, fmt.Sprintf(" Playlists · %d", len(rows)), rows, m.panelCursor)
+}
+
 // ── panel key handling ──────────────────────────────────────────────────────
 
 // handlePanelKey routes keys while an overlay is open.
@@ -336,6 +389,11 @@ func (m Model) handlePanelKey(key string) (tea.Model, tea.Cmd) {
 	case "esc":
 		if m.panel == PanelLibrary && m.lib.level != libSections {
 			m.lib.reset()
+			return m, nil
+		}
+		if m.panel == PanelPlaylists && m.plLevel == 1 {
+			m.plLevel = 0
+			m.panelCursor = m.plIndex
 			return m, nil
 		}
 		m.lib.open = false
@@ -367,6 +425,9 @@ func (m Model) handlePanelKey(key string) (tea.Model, tea.Cmd) {
 
 	case PanelLibrary:
 		return m.handleLibraryPanelKey(key)
+
+	case PanelPlaylists:
+		return m.handlePlaylistsPanelKey(key)
 	}
 
 	// Shared list behaviour for queue / favorites / history.
@@ -478,6 +539,12 @@ func (m Model) panelSong(i int) (models.Song, bool) {
 		if s := m.hist.Get(i); s != nil {
 			return *s, true
 		}
+	case PanelPlaylists:
+		if m.plLevel == 1 {
+			if pl := m.currentPlaylist(); pl != nil && i >= 0 && i < len(pl.Tracks) {
+				return pl.Tracks[i], true
+			}
+		}
 	}
 	return models.Song{}, false
 }
@@ -532,6 +599,23 @@ func (m *Model) deletePanelItem() {
 			}
 			m.notice = okNotice("removed from history", "", "")
 		}
+	case PanelPlaylists:
+		if m.plLevel == 1 {
+			// Remove one track from the playlist (keeps the list itself).
+			if pl := m.currentPlaylist(); pl != nil {
+				i := m.panelCursor
+				if i >= 0 && i < len(pl.Tracks) {
+					tracks := append(append([]models.Song{}, pl.Tracks[:i]...), pl.Tracks[i+1:]...)
+					m.playls.SetTracks(pl.ID, tracks)
+					m.notice = okNotice("removed from playlist", "", "")
+				}
+			}
+		} else if m.playls.RemoveAt(m.panelCursor) {
+			if m.playls.Len() == 0 {
+				m.panel = PanelNone
+			}
+			m.notice = okNotice("playlist removed", "", "")
+		}
 	}
 	m.clampCursors()
 }
@@ -560,6 +644,17 @@ func (m *Model) enqueuePanelAll() {
 		songs = m.favs.Songs()
 	case PanelHistory:
 		songs = m.hist.Songs()
+	case PanelPlaylists:
+		if m.plLevel == 1 {
+			if pl := m.currentPlaylist(); pl != nil {
+				songs = pl.Tracks
+			}
+		} else {
+			// Enqueue every track of every playlist.
+			for _, pl := range m.playls.List() {
+				songs = append(songs, pl.Tracks...)
+			}
+		}
 	default:
 		return
 	}

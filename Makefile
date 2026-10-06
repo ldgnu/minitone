@@ -1,5 +1,5 @@
 APP       := minitone
-VERSION   := 0.3.0
+VERSION   := 0.4.0
 PREFIX    := /usr
 BINDIR    := $(PREFIX)/bin
 GOFLAGS   := -trimpath
@@ -66,7 +66,7 @@ release: clean test vet package
 	@ls -lh $(DIST)/
 
 # Render one UI state without touching mpv (welcome search playing queue
-# favorites history library details help video searching error compact narrow)
+# favorites history library playlists details help video searching error compact narrow)
 screenshot:
 	@test -n "$(SCENARIO)" || { echo "usage: make screenshot SCENARIO=playing [W=100] [H=28] [THEME=tokyonight]"; exit 1; }
 	@go run ./cmd/minitone --screenshot $(SCENARIO) $(or $(W),100) $(or $(H),28) $(or $(THEME),tokyonight)

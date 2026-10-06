@@ -8,6 +8,7 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ldgnu/minitone/internal/config"
+	"github.com/ldgnu/minitone/internal/discover"
 	"github.com/ldgnu/minitone/internal/models"
 	"github.com/ldgnu/minitone/internal/player"
 	"github.com/ldgnu/minitone/internal/queue"
@@ -22,7 +23,7 @@ import (
 )
 
 // Version is set at link time via -ldflags "-X ...Version=x.y.z"
-var Version = "0.3.0"
+var Version = "0.4.0"
 
 type App struct {
 	cfg    *config.Config
@@ -51,6 +52,15 @@ func New() *App {
 	yt := youtube.New()
 	favs := store.DefaultFavorites()
 	hist := store.DefaultHistory()
+	playls := store.DefaultPlaylists()
+
+	// Seed playlists from taste (Apple Music reference) on first run.
+	// Lo más fácil: sin login, sin API — solo queries YouTube.
+	if playls.Len() == 0 {
+		for _, seed := range discover.DefaultSeeds(cfg.TasteGenres, cfg.TasteArtists) {
+			playls.Upsert(seed)
+		}
+	}
 
 	p := player.New()
 	p.SetVolume(cfg.Volume)
@@ -113,6 +123,7 @@ func New() *App {
 		Library:  ls,
 		Favs:     favs,
 		History:  hist,
+		Playlists: playls,
 		Session:  session,
 		Theme:    cfg.Theme,
 		Debounce: cfg.Debounce(),
@@ -120,12 +131,39 @@ func New() *App {
 		Keys:     &keys,
 	})
 
+	// Weekly refresh runs in the background so startup never blocks:
+	// stale auto playlists refill as YouTube answers.
+	go refreshStalePlaylists(playls, yt, time.Duration(cfg.WeeklyRefreshDays)*24*time.Hour)
+
 	return &App{
 		cfg:    cfg,
 		player: p,
 		queue:  q,
 		sm:     sm,
 		model:  m,
+	}
+}
+
+// refreshStalePlaylists refills auto playlists older than maxAge.
+func refreshStalePlaylists(playls *store.Playlists, yt *youtube.Client, maxAge time.Duration) {
+	if playls == nil || yt == nil || !yt.Available() {
+		return
+	}
+	if maxAge <= 0 {
+		maxAge = 7 * 24 * time.Hour
+	}
+	for _, id := range playls.StaleIDs(maxAge) {
+		pl := playls.Get(id)
+		if pl == nil || pl.Query == "" {
+			continue
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		tracks, err := discover.Refresh(ctx, *pl, yt.SearchContext, 8)
+		cancel()
+		if err != nil || len(tracks) == 0 {
+			continue
+		}
+		playls.SetTracks(id, tracks)
 	}
 }
 
