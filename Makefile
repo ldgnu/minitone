@@ -8,7 +8,7 @@ DIST      := dist
 ARCH      := $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 
 .PHONY: all build install uninstall test test-race test-short vet fmt clean \
-	package tarball deb aur-srcinfo release help screenshot
+	package tarball deb aur-srcinfo aur-push release help screenshot
 
 all: build
 
@@ -61,6 +61,22 @@ aur-srcinfo:
 	@command -v makepkg >/dev/null || { echo "makepkg required"; exit 1; }
 	cd packaging/aur && makepkg --printsrcinfo > .SRCINFO
 	@echo "→ packaging/aur/.SRCINFO"
+	@tmpdir="$$(mktemp -d)" && cp packaging/aur/PKGBUILD-bin "$$tmpdir/PKGBUILD" && \
+		(cd "$$tmpdir" && makepkg --printsrcinfo > "$(CURDIR)/packaging/aur/.SRCINFO-bin") && \
+		rm -rf "$$tmpdir"
+	@echo "→ packaging/aur/.SRCINFO-bin (copy into your minitone-bin AUR clone as .SRCINFO)"
+
+# Push both AUR packages (needs your AUR SSH key; runs git push in ~/minitone*).
+aur-push:
+	@test -d $(HOME)/minitone || { echo "~/minitone AUR clone missing"; exit 1; }
+	@test -d $(HOME)/minitone-bin || { echo "~/minitone-bin AUR clone missing"; exit 1; }
+	cp packaging/aur/PKGBUILD packaging/aur/.SRCINFO packaging/aur/minitone.install $(HOME)/minitone/
+	cp packaging/aur/PKGBUILD-bin $(HOME)/minitone-bin/PKGBUILD
+	cp packaging/aur/.SRCINFO-bin $(HOME)/minitone-bin/.SRCINFO
+	cp packaging/aur/minitone.install $(HOME)/minitone-bin/
+	@echo "staged — review with: (cd $(HOME)/minitone && git status) (cd $(HOME)/minitone-bin && git status)"
+	@echo "then: (cd $(HOME)/minitone && git add -A && git commit -m \"$(VERSION)\" && git push)"
+	@echo "      (cd $(HOME)/minitone-bin && git add -A && git commit -m \"$(VERSION)\" && git push)"
 
 release: clean test vet package
 	@ls -lh $(DIST)/
