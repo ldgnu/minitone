@@ -10,6 +10,7 @@ import (
 	"github.com/ldgnu/minitone/internal/config"
 	"github.com/ldgnu/minitone/internal/discover"
 	"github.com/ldgnu/minitone/internal/models"
+	"github.com/ldgnu/minitone/internal/mpris"
 	"github.com/ldgnu/minitone/internal/player"
 	"github.com/ldgnu/minitone/internal/queue"
 	"github.com/ldgnu/minitone/internal/search"
@@ -31,6 +32,7 @@ type App struct {
 	queue  *queue.Queue
 	sm     *search.Manager
 	model  ui.Model
+	mpris  *mpris.Service
 	closed bool
 }
 
@@ -69,8 +71,23 @@ func New() *App {
 	if err := p.Start(); err != nil && err != player.ErrNotInstalled {
 		fmt.Fprintf(os.Stderr, "minitone: player: %v\n", err)
 	}
-	if player.Available() {
-		p.Start()
+
+	// MPRIS: expose minitone on D-Bus so launchers/playerctl can see and
+	// control it. Next/Previous are routed to the UI queue through channels
+	// (the same path the n/p keys use), so nothing here changes how minitone
+	// already plays. Failing to register (e.g. headless) is non-fatal.
+	var mprisNextCh, mprisPrevCh chan struct{}
+	var mprisSvc *mpris.Service
+	if player.Available() && p.Start() == nil {
+		nc := make(chan struct{}, 4)
+		pc := make(chan struct{}, 4)
+		svc := mpris.New(p, nc, pc)
+		if err := svc.Start(); err != nil {
+			fmt.Fprintf(os.Stderr, "minitone: mpris disabled: %v\n", err)
+		} else {
+			mprisSvc = svc
+			mprisNextCh, mprisPrevCh = nc, pc
+		}
 	}
 
 	var nd *navSrc.Client
@@ -129,6 +146,8 @@ func New() *App {
 		Debounce: cfg.Debounce(),
 		Restore:  cfg.RestoreSession,
 		Keys:     &keys,
+		MprisNextCh: mprisNextCh,
+		MprisPrevCh: mprisPrevCh,
 	})
 
 	// Weekly refresh runs in the background so startup never blocks:
@@ -141,6 +160,7 @@ func New() *App {
 		queue:  q,
 		sm:     sm,
 		model:  m,
+		mpris:  mprisSvc,
 	}
 }
 

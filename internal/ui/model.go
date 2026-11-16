@@ -164,6 +164,11 @@ type tickMsg time.Time
 
 type songEndedMsg struct{}
 
+// mprisNextMsg / mprisPrevMsg are produced when playerctl (or any MPRIS client)
+// requests Next/Previous; they run the same queue advance as the n/p keys.
+type mprisNextMsg struct{}
+type mprisPrevMsg struct{}
+
 type playerErrMsg struct{ err error }
 
 type scanMsg struct{ status library.ScanStatus }
@@ -244,6 +249,9 @@ type Model struct {
 	// channels bridging the background workers into the Bubble Tea loop.
 	searchCh chan search.Event
 	endedCh  chan struct{}
+
+	mprisNextCh chan struct{}
+	mprisPrevCh chan struct{}
 	scanCh   chan library.ScanStatus
 
 	keys KeyMap
@@ -283,6 +291,11 @@ type Deps struct {
 	Restore  bool
 	// Keys overrides the default bindings (from config keybindings).
 	Keys *KeyMap
+	// MprisNextCh / MprisPrevCh receive a token when playerctl (or any MPRIS
+	// client) asks for Next/Previous. They mirror the n/p keys: the same queue
+	// advance runs inside the TUI update loop so the UI stays consistent.
+	MprisNextCh chan struct{}
+	MprisPrevCh chan struct{}
 }
 
 func New(d Deps) Model {
@@ -349,6 +362,9 @@ func New(d Deps) Model {
 		search:           newSearchState(),
 		searchCh:         searchEvents,
 		endedCh:          ended,
+
+		mprisNextCh: d.MprisNextCh,
+		mprisPrevCh: d.MprisPrevCh,
 		scanCh:           scanEvents,
 		youtubeClient:    d.YouTube,
 		navidromeClient:  d.Nav,
@@ -392,6 +408,8 @@ func (m Model) Init() tea.Cmd {
 		cmd,
 		m.waitSearchEvents(),
 		m.waitEnded(),
+		m.waitMprisNext(),
+		m.waitMprisPrev(),
 		m.waitScan(),
 		tickCmd(),
 	)
@@ -415,6 +433,30 @@ func (m Model) waitEnded() tea.Cmd {
 	return func() tea.Msg {
 		<-ch
 		return songEndedMsg{}
+	}
+}
+
+// waitMprisNext blocks until playerctl/MPRIS asks for Next.
+func (m Model) waitMprisNext() tea.Cmd {
+	ch := m.mprisNextCh
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		<-ch
+		return mprisNextMsg{}
+	}
+}
+
+// waitMprisPrev blocks until playerctl/MPRIS asks for Previous.
+func (m Model) waitMprisPrev() tea.Cmd {
+	ch := m.mprisPrevCh
+	if ch == nil {
+		return nil
+	}
+	return func() tea.Msg {
+		<-ch
+		return mprisPrevMsg{}
 	}
 }
 

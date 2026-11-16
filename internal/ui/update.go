@@ -56,6 +56,15 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		cmd := m.autoAdvance()
 		return m, tea.Batch(cmd, m.waitEnded())
 
+	// MPRIS / playerctl Next & Previous: same queue advance as the n/p keys,
+	// re-arming the wait so the next request is honoured too.
+	case mprisNextMsg:
+		cmd := m.playNext()
+		return m, tea.Batch(cmd, m.waitMprisNext())
+	case mprisPrevMsg:
+		cmd := m.playPrev()
+		return m, tea.Batch(cmd, m.waitMprisPrev())
+
 	case tickMsg:
 		return m.onTick()
 
